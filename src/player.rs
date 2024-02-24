@@ -1,14 +1,15 @@
-use crate::State;
 use glam::{vec2, vec3, Mat4, Vec2, Vec3};
-use small_gl_core::animator::{AnimationClip, AnimationRepeat, WeightedAnimation};
-use small_gl_core::hash_map::HashMap;
-use small_gl_core::model::{Model, ModelBuilder};
-use small_gl_core::shader::Shader;
-use small_gl_core::texture::TextureType;
 use std::f32::consts::PI;
 use std::ops::Deref;
 use std::rc::Rc;
 use std::time::Duration;
+use spark_gap::animator::{AnimationClip, AnimationRepeat, WeightedAnimation};
+use spark_gap::gpu_context::GpuContext;
+use spark_gap::hash_map::HashMap;
+use spark_gap::model::Model;
+use spark_gap::model_builder::ModelBuilder;
+use spark_gap::texture_config::TextureType;
+use crate::world::State;
 
 const PLAYER_SPEED: f32 = 5.0;
 // 1.5;
@@ -96,7 +97,7 @@ impl Default for AnimationWeights {
 }
 
 impl Player {
-    pub fn new() -> Self {
+    pub fn new(context: &mut GpuContext) -> Self {
         let player_model = ModelBuilder::new("player", "assets/Models/Player/Player.fbx")
             .add_texture("Player", TextureType::Diffuse, "Textures/Player_D.tga")
             .add_texture("Player", TextureType::Specular, "Textures/Player_M.tga")
@@ -106,7 +107,7 @@ impl Player {
             .add_texture("Gun", TextureType::Specular, "Textures/Gun_M.tga")
             .add_texture("Gun", TextureType::Emissive, "Textures/Gun_E.tga")
             .add_texture("Gun", TextureType::Normals, "Textures/Gun_NRM.tga")
-            .build()
+            .build(context)
             .unwrap();
 
         let mut anim_hash: HashMap<Rc<str>, Rc<AnimationClip>> = HashMap::new();
@@ -172,9 +173,9 @@ impl Player {
         }
     }
 
-    pub fn render(&self, shader: &Shader) {
-        self.model.render(shader);
-    }
+    // pub fn render(&self, shader: &Shader) {
+    //     self.model.render(shader);
+    // }
 
     pub fn update(&mut self, state: &State, aim_theta: f32) {
         let weight_animations = self.update_animation_weights(self.direction, aim_theta, state.frame_time);

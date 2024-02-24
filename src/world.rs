@@ -1,16 +1,21 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use glam::{Mat4, Vec3};
 use spark_gap::camera::camera_handler::CameraHandler;
 use spark_gap::camera::fly_camera_controller::FlyCameraController;
 use spark_gap::input::Input;
 use spark_gap::model::Model;
 use std::time::Instant;
+use spark_gap::hash_map::HashSet;
 use wgpu::TextureView;
+use winit::keyboard::Key;
+use crate::player::Player;
+use crate::sound_system::SoundSystem;
 
 pub struct World {
     pub camera_controller: FlyCameraController,
     pub camera_handler: CameraHandler,
-    pub model: Model,
-    pub model_2: Model,
+    pub model: Player,
     pub model_position: Vec3,
     pub model_transform: Mat4,
     pub depth_texture_view: TextureView,
@@ -34,4 +39,30 @@ impl World {
         }
         self.frame_time = current_time;
     }
+}
+
+pub struct State {
+    pub run: bool,
+    pub viewport_width: i32,
+    pub viewport_height: i32,
+    pub scaled_width: i32,
+    pub scaled_height: i32,
+    pub window_scale: (f32, f32),
+    pub key_presses: HashSet<Key>,
+    // pub game_camera: FlyCameraController,
+    // pub floating_camera: FlyCameraController,
+    // pub ortho_camera: FlyCameraController,
+    // active_camera: CameraType,
+    pub game_projection: Mat4,
+    pub floating_projection: Mat4,
+    pub orthographic_projection: Mat4,
+    pub delta_time: f32,
+    pub frame_time: f32,
+    pub first_mouse: bool,
+    pub mouse_x: f32,
+    pub mouse_y: f32,
+    // pub player: Rc<RefCell<Player>>,
+    // pub enemies: Vec<Enemy>,
+    // pub burn_marks: BurnMarks,
+    // pub sound_system: SoundSystem,
 }

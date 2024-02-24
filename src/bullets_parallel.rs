@@ -1,15 +1,9 @@
 use crate::aabb::Aabb;
-use crate::capsule::Capsule;
-use crate::enemy::{Enemy, ENEMY_COLLIDER};
+// use crate::enemy::{Enemy, ENEMY_COLLIDER};
 use crate::geom::{distance_between_line_segments, oriented_angle};
 use crate::sprite_sheet::{SpriteSheet, SpriteSheetSprite};
-use crate::{State, SPREAD_AMOUNT};
 use glam::{vec3, vec4, Mat4, Quat, Vec3, Vec4Swizzles};
 use rayon::prelude::*;
-use small_gl_core::gl::{GLsizei, GLsizeiptr, GLuint, GLvoid};
-use small_gl_core::shader::Shader;
-use small_gl_core::texture::{bind_texture, Texture, TextureConfig, TextureFilter, TextureType, TextureWrap};
-use small_gl_core::{gl, NULL, SIZE_OF_FLOAT, SIZE_OF_QUAT, SIZE_OF_VEC3};
 use std::f32::consts::PI;
 
 // const BULLET_SCALE: f32 = 0.3;
@@ -24,7 +18,7 @@ const ROTATION_PER_BULLET: f32 = 3.0 * PI / 180.0;
 const SCALE_VEC: Vec3 = vec3(BULLET_SCALE, BULLET_SCALE, BULLET_SCALE);
 const BULLET_NORMAL: Vec3 = vec3(0.0, 1.0, 0.0);
 const CANONICAL_DIR: Vec3 = vec3(0.0, 0.0, 1.0);
-
+/*
 const BULLET_COLLIDER: Capsule = Capsule { height: 0.3, radius: 0.03 };
 
 const BULLET_ENEMY_MAX_COLLISION_DIST: f32 = BULLET_COLLIDER.height / 2.0 + BULLET_COLLIDER.radius + ENEMY_COLLIDER.height / 2.0 + ENEMY_COLLIDER.radius;
@@ -606,3 +600,6 @@ mod tests {
         }
     }
 }
+
+
+ */

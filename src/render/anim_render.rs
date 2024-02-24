@@ -1,4 +1,3 @@
-use crate::game_loop::BACKGROUND_COLOR;
 use crate::world::World;
 use glam::{vec3, Mat4};
 use spark_gap::camera::camera_handler::CAMERA_BIND_GROUP_LAYOUT;
@@ -9,6 +8,14 @@ use spark_gap::model_builder::MODEL_BIND_GROUP_LAYOUT;
 use spark_gap::model_mesh::ModelVertex;
 use spark_gap::texture_config::TextureType;
 use wgpu::{IndexFormat, RenderPass, RenderPipeline, TextureView};
+use crate::lighting::GAME_LIGHTING_BIND_GROUP_LAYOUT;
+
+pub const BACKGROUND_COLOR: wgpu::Color = wgpu::Color {
+    r: 0.1,
+    g: 0.2,
+    b: 0.1,
+    a: 1.0,
+};
 
 pub struct AnimRenderPass {
     render_pipeline: RenderPipeline,
@@ -61,11 +68,10 @@ impl AnimRenderPass {
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_bind_group(0, &world.camera_handler.bind_group, &[]);
 
-            let render_pass = render_model(context, render_pass, &world.model, &world.model_transform);
+            let render_pass = render_model(context, render_pass, &world.model.model, &world.model_transform);
 
-            let model_transform = Mat4::from_translation(vec3(50.0, 0.0, -100.0));
+            // let model_transform = Mat4::from_translation(vec3(50.0, 0.0, -100.0));
 
-            render_model(context, render_pass, &world.model_2, &model_transform);
         }
 
         context.queue.submit(Some(encoder.finish()));
@@ -98,16 +104,25 @@ pub fn create_render_pipeline(context: &GpuContext) -> RenderPipeline {
     let camera_bind_group_layout = context.bind_layout_cache.get(CAMERA_BIND_GROUP_LAYOUT).unwrap();
     let model_bind_group_layout = context.bind_layout_cache.get(MODEL_BIND_GROUP_LAYOUT).unwrap();
     let material_bind_group_layout = context.bind_layout_cache.get(MATERIAL_BIND_GROUP_LAYOUT).unwrap();
+    let lighting_bing_group_layout = context.bind_layout_cache.get(GAME_LIGHTING_BIND_GROUP_LAYOUT).unwrap();
 
     let pipeline_layout = context.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("Render Pipeline Layout"),
-        bind_group_layouts: &[camera_bind_group_layout, model_bind_group_layout, material_bind_group_layout],
+        bind_group_layouts: &[
+            camera_bind_group_layout,
+            model_bind_group_layout,
+            material_bind_group_layout, // diffuse
+            material_bind_group_layout, // specular
+            material_bind_group_layout, // emissive
+            material_bind_group_layout, // shadow
+            lighting_bing_group_layout,
+        ],
         push_constant_ranges: &[],
     });
 
     let shader = context.device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("animation_shader.wgsl"),
-        source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/animation_shader.wgsl").into()),
+        source: wgpu::ShaderSource::Wgsl(include_str!("../../shaders/player_shader.wgsl").into()),
     });
 
     let swapchain_capabilities = context.surface.get_capabilities(&context.adapter);

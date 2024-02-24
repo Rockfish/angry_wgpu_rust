@@ -1,10 +1,6 @@
 use crate::sprite_sheet::SpriteSheet;
 use glam::{vec3, Mat4};
-use small_gl_core::gl;
-use small_gl_core::gl::GLuint;
-use small_gl_core::shader::Shader;
-use small_gl_core::texture::{bind_texture, Texture, TextureConfig, TextureWrap};
-
+/*
 pub struct MuzzleFlash {
     unit_square_vao: i32,
     muzzle_flash_impact_spritesheet: SpriteSheet,
@@ -87,3 +83,4 @@ impl MuzzleFlash {
         }
     }
 }
+*/

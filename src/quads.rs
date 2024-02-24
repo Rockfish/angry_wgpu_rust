@@ -1,5 +1,3 @@
-use small_gl_core::gl::{GLsizei, GLsizeiptr, GLuint, GLvoid};
-use small_gl_core::{gl, null, NULL, SIZE_OF_FLOAT};
 
 #[rustfmt::skip]
 const UNIT_SQUARE: [f32; 30] = [
@@ -30,7 +28,7 @@ const OBNOXIOUS_QUAD: [f32; 30] = [
     1.0, 1.0, -0.9, 1.0, 1.0,
     0.5, 1.0, -0.9, 0.0, 1.0,
 ];
-
+/*
 pub fn create_obnoxious_quad_vao() -> GLuint {
     let mut obnoxious_quad_vao: GLuint = 0;
     let mut obnoxious_quad_vbo: GLuint = 0;
@@ -135,3 +133,4 @@ pub fn render_quad(quad_vao: &mut GLuint) {
         gl::BindVertexArray(0);
     }
 }
+*/

@@ -1,3 +1,4 @@
+/*
 // #![feature(const_trait_impl)]
 // #![feature(effects)]
 // #![allow(non_upper_case_globals)]
@@ -36,9 +37,7 @@ use spark_gap::hash_map::HashSet;
 use spark_gap::frame_counter::FrameCounter;
 use winit::event::MouseButton;
 
-extern crate pretty_env_logger;
-#[macro_use]
-extern crate log;
+
 
 const PARALLELISM: i32 = 4;
 
@@ -83,31 +82,7 @@ enum CameraType {
     Side,
 }
 
-struct State {
-    run: bool,
-    viewport_width: i32,
-    viewport_height: i32,
-    scaled_width: i32,
-    scaled_height: i32,
-    window_scale: (f32, f32),
-    key_presses: HashSet<Key>,
-    game_camera: FlyCameraController,
-    floating_camera: FlyCameraController,
-    ortho_camera: FlyCameraController,
-    active_camera: CameraType,
-    game_projection: Mat4,
-    floating_projection: Mat4,
-    orthographic_projection: Mat4,
-    delta_time: f32,
-    frame_time: f32,
-    first_mouse: bool,
-    mouse_x: f32,
-    mouse_y: f32,
-    player: Rc<RefCell<Player>>,
-    enemies: Vec<Enemy>,
-    burn_marks: BurnMarks,
-    sound_system: SoundSystem,
-}
+
 
 
 #[allow(clippy::cognitive_complexity)]
@@ -830,3 +805,6 @@ fn mouse_handler(state: &mut State, xpos_in: f64, ypos_in: f64) {
 fn scroll_handler(state: &mut State, _xoffset: f64, yoffset: f64) {
     state.game_camera.process_mouse_scroll(yoffset as f32);
 }
+
+
+ */

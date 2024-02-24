@@ -1,7 +1,3 @@
-use crate::BLUR_SCALE;
-use small_gl_core::gl::{GLfloat, GLint, GLuint, GLvoid};
-use small_gl_core::{gl, null};
-
 pub const SHADOW_WIDTH: i32 = 6 * 1024;
 pub const SHADOW_HEIGHT: i32 = 6 * 1024;
 
@@ -9,7 +5,7 @@ pub struct FrameBuffer {
     pub framebuffer_id: u32, // framebuffer object
     pub texture_id: u32,     // texture object
 }
-
+/*
 /*
    Buffer to original texture names
 
@@ -233,3 +229,6 @@ pub fn create_vertical_blur_fbo(viewport_width: i32, viewport_height: i32) -> Fr
         texture_id: vertical_blur_texture,
     }
 }
+
+
+ */

@@ -1,12 +1,7 @@
-use crate::capsule::Capsule;
 use crate::geom::distance_between_point_and_line_segment;
-use crate::{State, MONSTER_SPEED, MONSTER_Y, PLAYER_COLLISION_RADIUS};
 use glam::{vec2, vec3, Mat4, Vec3};
-use small_gl_core::model::{Model, ModelBuilder};
-use small_gl_core::shader::Shader;
-use small_gl_core::utils::rand_float;
 use std::f32::consts::PI;
-
+/*
 pub const ENEMY_COLLIDER: Capsule = Capsule { height: 0.4, radius: 0.08 };
 
 pub struct Enemy {
@@ -112,3 +107,6 @@ impl EnemySystem {
         }
     }
 }
+
+
+ */

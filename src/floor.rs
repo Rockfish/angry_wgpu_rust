@@ -1,9 +1,5 @@
 use glam::{vec3, Mat4};
-use small_gl_core::gl::{GLsizei, GLsizeiptr, GLuint, GLvoid};
-use small_gl_core::shader::Shader;
-use small_gl_core::texture::{bind_texture, Texture, TextureConfig, TextureFilter, TextureType, TextureWrap};
-use small_gl_core::{gl, null, SIZE_OF_FLOAT};
-
+/*
 const FLOOR_SIZE: f32 = 100.0;
 const TILE_SIZE: f32 = 1.0;
 const NUM_TILE_WRAPS: f32 = FLOOR_SIZE / TILE_SIZE;
@@ -93,3 +89,6 @@ impl Floor {
         }
     }
 }
+
+
+ */

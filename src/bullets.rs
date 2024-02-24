@@ -1,13 +1,8 @@
 use crate::aabb::Aabb;
-use crate::enemy::{Enemy, ENEMY_COLLIDER};
+// use crate::enemy::{Enemy, ENEMY_COLLIDER};
 use crate::geom::{distance_between_line_segments, oriented_angle};
 use crate::sprite_sheet::{SpriteSheet, SpriteSheetSprite};
-use crate::State;
 use glam::{vec3, vec4, Mat4, Quat, Vec3, Vec4Swizzles};
-use small_gl_core::gl::{GLsizei, GLsizeiptr, GLuint, GLvoid};
-use small_gl_core::shader::Shader;
-use small_gl_core::texture::{bind_texture, Texture, TextureConfig, TextureFilter, TextureType, TextureWrap};
-use small_gl_core::{gl, NULL, SIZE_OF_FLOAT, SIZE_OF_QUAT, SIZE_OF_VEC3};
 use std::f32::consts::PI;
 
 pub struct BulletGroup {
@@ -25,6 +20,8 @@ impl BulletGroup {
         }
     }
 }
+
+/*
 
 pub struct BulletStore {
     all_bullet_positions: Vec<Vec3>,
@@ -577,3 +574,6 @@ mod tests {
         }
     }
 }
+
+
+ */

@@ -1,5 +1,7 @@
-use crate::anim_render::{create_depth_texture_view, AnimRenderPass};
-use crate::world::World;
+use std::cell::RefCell;
+use std::rc::Rc;
+use crate::render::anim_render::{create_depth_texture_view, AnimRenderPass};
+use crate::world::{State, World};
 use glam::{vec3, Mat4, Vec3};
 use spark_gap::camera::camera_handler::CameraHandler;
 use spark_gap::camera::fly_camera_controller::FlyCameraController;
@@ -14,6 +16,8 @@ use winit::event_loop::EventLoop;
 use winit::keyboard;
 use winit::keyboard::NamedKey::Escape;
 use winit::window::Window;
+use crate::lighting::{GameLightingHandler, GameLightingUniform};
+use crate::player::Player;
 
 pub const BACKGROUND_COLOR: wgpu::Color = wgpu::Color {
     r: 0.1,
@@ -32,9 +36,14 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
     let camera_controller = FlyCameraController::new(aspect_ratio, camera_position, 0.0, 0.0);
     let camera_handler = CameraHandler::new(&mut context, &camera_controller);
 
-    let model_path = "examples/animation/vampire/dancing_vampire.dae";
-    let model = ModelBuilder::new("model", model_path).build(&mut context).unwrap();
-    let model_2 = ModelBuilder::new("model", model_path).build(&mut context).unwrap();
+    let game_lighting_uniform = GameLightingUniform::new();
+    let lighting_handler = GameLightingHandler::new(&mut context, game_lighting_uniform);
+
+    // let model_path = "examples/animation/vampire/dancing_vampire.dae";
+    // let model = ModelBuilder::new("model", model_path).build(&mut context).unwrap();
+    // let model_2 = ModelBuilder::new("model", model_path).build(&mut context).unwrap();
+
+    let model = Player::new(&mut context);
 
     let model_position = Vec3::ZERO;
 
@@ -56,7 +65,6 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
         camera_controller,
         camera_handler,
         model,
-        model_2,
         model_position,
         model_transform,
         depth_texture_view,
@@ -68,6 +76,29 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
         mouse_x: 0.0,
         mouse_y: 0.0,
         input: Input::default(),
+    };
+    
+    let mut state = State {
+        run: false,
+        viewport_width: 0,
+        viewport_height: 0,
+        scaled_width: 0,
+        scaled_height: 0,
+        window_scale: (0.0, 0.0),
+        key_presses: Default::default(),
+        // game_camera: FlyCameraController {},
+        // floating_camera: FlyCameraController {},
+        // ortho_camera: FlyCameraController {},
+        game_projection: Default::default(),
+        floating_projection: Default::default(),
+        orthographic_projection: Default::default(),
+        delta_time: 0.0,
+        frame_time: 0.0,
+        first_mouse: false,
+        mouse_x: 0.0,
+        mouse_y: 0.0,
+        // player: Rc::new(RefCell::new(model)),
+        // sound_system: (),
     };
 
     event_loop
@@ -91,8 +122,8 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
                             world.camera_controller.update(&world.input, world.delta_time);
                             world.camera_handler.update_camera(&context, &world.camera_controller);
 
-                            world.model.update_animation(world.delta_time - 0.004);
-                            world.model_2.update_animation(world.delta_time);
+                            // world.model.update_animation(world.delta_time - 0.004);
+                            world.model.update(&state, 1.0);
 
                             anim_render.render(&context, &world);
 

@@ -1,5 +1,4 @@
 mod game_loop;
-mod anim_render;
 mod world;
 mod sound_system;
 mod geom;
@@ -15,10 +14,16 @@ mod game;
 mod muzzle_flash;
 mod player;
 mod quads;
+mod render;
+mod lighting;
 
 use std::sync::Arc;
 use winit::event_loop::EventLoop;
 use crate::game_loop::run;
+
+extern crate pretty_env_logger;
+#[macro_use]
+extern crate log;
 
 pub fn main() {
     env_logger::init();
