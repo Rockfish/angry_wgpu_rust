@@ -65,13 +65,34 @@ impl AnimRenderPass {
         {
             let mut render_pass = encoder.begin_render_pass(&pass_description);
 
+            let model = &world.model.model;
+            let model_transform = &world.model_transform;
+
+            model.update_model_buffers(context, &model_transform);
+
             render_pass.set_pipeline(&self.render_pipeline);
+
             render_pass.set_bind_group(0, &world.camera_handler.bind_group, &[]);
+            render_pass.set_bind_group(1, &model.bind_group, &[]);
+            render_pass.set_bind_group(2, &world.game_lighting_handler.bind_group, &[]);
 
-            let render_pass = render_model(context, render_pass, &world.model.model, &world.model_transform);
+            for mesh in model.meshes.iter() {
+                model.update_mesh_buffers(context, &mesh);
 
-            // let model_transform = Mat4::from_translation(vec3(50.0, 0.0, -100.0));
+                let diffuse_bind_group = model.get_material_bind_group(&mesh, TextureType::Diffuse);
+                let specular_bind_group = model.get_material_bind_group(&mesh, TextureType::Specular);
+                let emissive_bind_group = model.get_material_bind_group(&mesh, TextureType::Emissive);
+                // let shadow_map_bind_group = model.get_material_bind_group(&mesh, TextureType::Diffuse); // shadow
 
+                render_pass.set_bind_group(3, diffuse_bind_group, &[]);
+                render_pass.set_bind_group(4, specular_bind_group, &[]);
+                render_pass.set_bind_group(5, emissive_bind_group, &[]);
+                // render_pass.set_bind_group(6, shadow_map_bind_group, &[]);
+
+                render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
+                render_pass.set_index_buffer(mesh.index_buffer.slice(..), IndexFormat::Uint32);
+                render_pass.draw_indexed(0..mesh.num_elements, 0, 0..1);
+            }
         }
 
         context.queue.submit(Some(encoder.finish()));
@@ -79,43 +100,22 @@ impl AnimRenderPass {
     }
 }
 
-fn render_model<'a>(
-    context: &'a GpuContext,
-    mut render_pass: RenderPass<'a>,
-    model: &'a Model,
-    model_transform: &'a Mat4,
-) -> RenderPass<'a> {
-    model.update_model_buffers(context, &model_transform);
-    render_pass.set_bind_group(1, &model.bind_group, &[]);
-
-    for mesh in model.meshes.iter() {
-        model.update_mesh_buffers(context, &mesh);
-        let material_bind_group = model.get_material_bind_group(&mesh, TextureType::Diffuse);
-
-        render_pass.set_bind_group(2, material_bind_group, &[]);
-        render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-        render_pass.set_index_buffer(mesh.index_buffer.slice(..), IndexFormat::Uint32);
-        render_pass.draw_indexed(0..mesh.num_elements, 0, 0..1);
-    }
-    render_pass
-}
-
 pub fn create_render_pipeline(context: &GpuContext) -> RenderPipeline {
     let camera_bind_group_layout = context.bind_layout_cache.get(CAMERA_BIND_GROUP_LAYOUT).unwrap();
     let model_bind_group_layout = context.bind_layout_cache.get(MODEL_BIND_GROUP_LAYOUT).unwrap();
     let material_bind_group_layout = context.bind_layout_cache.get(MATERIAL_BIND_GROUP_LAYOUT).unwrap();
-    let lighting_bing_group_layout = context.bind_layout_cache.get(GAME_LIGHTING_BIND_GROUP_LAYOUT).unwrap();
+    let lighting_bind_group_layout = context.bind_layout_cache.get(GAME_LIGHTING_BIND_GROUP_LAYOUT).unwrap();
 
     let pipeline_layout = context.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("Render Pipeline Layout"),
         bind_group_layouts: &[
             camera_bind_group_layout,
             model_bind_group_layout,
+            lighting_bind_group_layout,
             material_bind_group_layout, // diffuse
             material_bind_group_layout, // specular
             material_bind_group_layout, // emissive
-            material_bind_group_layout, // shadow
-            lighting_bing_group_layout,
+            // material_bind_group_layout, // shadow
         ],
         push_constant_ranges: &[],
     });

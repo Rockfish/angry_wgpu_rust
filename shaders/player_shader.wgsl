@@ -54,31 +54,21 @@ const MAX_BONE_INFLUENCE = 4;
 @group(1) @binding(1) var<uniform> node_transform: mat4x4<f32>;
 @group(1) @binding(2) var<uniform> bone_transforms: array<mat4x4<f32>, MAX_BONES>;
 
-// material information
-@group(2) @binding(0) var diffuse_texture: texture_2d<f32>;
-@group(2) @binding(1) var diffuse_sampler: sampler;
-
-@group(3) @binding(2) var specular_texture: texture_2d<f32>;
-@group(3) @binding(3) var specular_sampler: sampler;
-
-@group(3) @binding(4) var emissive_texture: texture_2d<f32>;
-@group(3) @binding(5) var emissive_sampler: sampler;
-
-@group(4) @binding(6) var shadow_map_texture: texture_2d<f32>;
-@group(4) @binding(7) var shadow_map_sampler: sampler;
-
 // game and lighting
-@group(5) @binding(0) var<uniform> game_lighting: GameLighting;
-//@group(3) @binding(0) var<uniform> aim_rotation: mat4x4<f32>;
-//@group(3) @binding(1) var<uniform> depth_mode: i32;
-//@group(3) @binding(2) var<uniform> light_space_matrix: mat4x4<f32>;
-//@group(3) @binding(3) var<uniform> direction_light: DirectionLight;
-//@group(3) @binding(4) var<uniform> point_light: PointLight;
-//@group(3) @binding(5) var<uniform> use_point_light: i32;
-//@group(3) @binding(6) var<uniform> use_light: i32;
-//@group(3) @binding(7) var<uniform> use_emissive: i32;
-//@group(3) @binding(8) var<uniform> ambient: vec3<f32>;
-//@group(3) @binding(9) var<uniform> view_position: vec3<f32>;
+@group(2) @binding(0) var<uniform> game_lighting: GameLighting;
+
+// material information
+@group(3) @binding(0) var diffuse_texture: texture_2d<f32>;
+@group(3) @binding(1) var diffuse_sampler: sampler;
+
+@group(4) @binding(0) var specular_texture: texture_2d<f32>;
+@group(4) @binding(1) var specular_sampler: sampler;
+
+@group(5) @binding(0) var emissive_texture: texture_2d<f32>;
+@group(5) @binding(1) var emissive_sampler: sampler;
+
+//@group(6) @binding(0) var shadow_map_texture: texture_2d<f32>;
+//@group(6) @binding(1) var shadow_map_sampler: sampler;
 
 
 // Vertex shader section
@@ -146,21 +136,21 @@ fn get_animated_position(model: VertexInput) -> AnimationOutput {
 
 // Fragment shader section
 
-fn ShadowCalculation(bias: f32, fragPosLightSpace: vec4<f32>) -> f32 {
-
-  var projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-  projCoords = projCoords * 0.5 + 0.5;
-
-  var closestDepth = textureSample(shadow_map_texture, shadow_map_sampler, projCoords.xy).r;
-  var currentDepth = projCoords.z;
-
-  var shadow = 0.0;
-  if (currentDepth - bias) > closestDepth {
-    shadow = 1.0;
-  };
-
-  return shadow;
-}
+//fn ShadowCalculation(bias: f32, fragPosLightSpace: vec4<f32>) -> f32 {
+//
+//  var projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+//  projCoords = projCoords * 0.5 + 0.5;
+//
+//  var closestDepth = textureSample(shadow_map_texture, shadow_map_sampler, projCoords.xy).r;
+//  var currentDepth = projCoords.z;
+//
+//  var shadow = 0.0;
+//  if (currentDepth - bias) > closestDepth {
+//    shadow = 1.0;
+//  };
+//
+//  return shadow;
+//}
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
@@ -182,7 +172,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
           var bias: f32 = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
 
           bias = 0.001;
-          shadow = ShadowCalculation(bias, in.light_space_position);
+//          shadow = ShadowCalculation(bias, in.light_space_position);
 
           color = (1.0 - shadow) * vec4<f32>(game_lighting.direction_light.color, 1.0) * color * diff + vec4<f32>(amb, 1.0);
         }

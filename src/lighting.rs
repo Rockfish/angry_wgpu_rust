@@ -71,6 +71,7 @@ impl GameLightingUniform {
 }
 
 pub struct GameLightingHandler {
+    pub uniform: GameLightingUniform,
     pub uniform_buffer: Buffer,
     pub bind_group: BindGroup,
 }
@@ -104,7 +105,11 @@ impl GameLightingHandler {
             label: Some("game_lighting_bind_group"),
         });
 
-        Self { uniform_buffer, bind_group }
+        Self {
+            uniform: lighting_uniform,
+            uniform_buffer,
+            bind_group
+        }
     }
 
     pub fn update_camera(&self, context: &GpuContext, lighting_uniform: GameLightingUniform) {

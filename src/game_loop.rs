@@ -37,7 +37,7 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
     let camera_handler = CameraHandler::new(&mut context, &camera_controller);
 
     let game_lighting_uniform = GameLightingUniform::new();
-    let lighting_handler = GameLightingHandler::new(&mut context, game_lighting_uniform);
+    let game_lighting_handler = GameLightingHandler::new(&mut context, game_lighting_uniform);
 
     // let model_path = "examples/animation/vampire/dancing_vampire.dae";
     // let model = ModelBuilder::new("model", model_path).build(&mut context).unwrap();
@@ -67,11 +67,12 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
         model,
         model_position,
         model_transform,
+        game_lighting_handler,
         depth_texture_view,
         run: true,
-        start_instant: Instant::now(),
-        delta_time: 0.0,
-        frame_time: 0.0,
+        // start_instant: Instant::now(),
+        // delta_time: 0.0,
+        // frame_time: 0.0,
         first_mouse: false,
         mouse_x: 0.0,
         mouse_y: 0.0,
@@ -92,6 +93,7 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
         game_projection: Default::default(),
         floating_projection: Default::default(),
         orthographic_projection: Default::default(),
+        start_instant: Instant::now(),
         delta_time: 0.0,
         frame_time: 0.0,
         first_mouse: false,
@@ -117,9 +119,9 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
                         WindowEvent::RedrawRequested => {
                             frame_counter.update();
 
-                            world.update_time();
+                            state.update_time();
 
-                            world.camera_controller.update(&world.input, world.delta_time);
+                            world.camera_controller.update(&world.input, state.delta_time);
                             world.camera_handler.update_camera(&context, &world.camera_controller);
 
                             // world.model.update_animation(world.delta_time - 0.004);
