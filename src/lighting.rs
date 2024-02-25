@@ -44,12 +44,12 @@ pub struct GameLightingUniform {
     pub aim_rotation: Mat4,
     pub light_space_matrix: Mat4,
     pub view_position: Vec3,
-    pub ambient: Vec3,
+    pub ambient_color: Vec3,
     pub depth_mode: i32,
     pub use_point_light: i32,
     pub use_light: i32,
     pub use_emissive: i32,
-    _pad: [f32; 6],
+    pub(crate) _pad: [f32; 6],
 }
 
 impl GameLightingUniform {
@@ -60,7 +60,7 @@ impl GameLightingUniform {
             aim_rotation: Default::default(),
             light_space_matrix: Default::default(),
             view_position: Default::default(),
-            ambient: Default::default(),
+            ambient_color: Default::default(),
             depth_mode: 0,
             use_point_light: 0,
             use_light: 0,

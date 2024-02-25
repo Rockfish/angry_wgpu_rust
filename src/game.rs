@@ -1,4 +1,3 @@
-/*
 // #![feature(const_trait_impl)]
 // #![feature(effects)]
 // #![allow(non_upper_case_globals)]
@@ -9,25 +8,17 @@
 // #![allow(clippy::zero_ptr)]
 // #![allow(clippy::assign_op_pattern)]
 
-
+/*
 // use crate::bullets::BulletStore;
-use crate::bullets_parallel::BulletStore;
-use crate::burn_marks::BurnMarks;
-use crate::enemy::{Enemy, EnemySystem};
-use crate::floor::Floor;
-use crate::framebuffers::{
-    create_depth_map_fbo, create_emission_fbo, create_horizontal_blur_fbo, create_scene_fbo, create_vertical_blur_fbo, SHADOW_HEIGHT, SHADOW_WIDTH,
-};
-use crate::muzzle_flash::MuzzleFlash;
 use crate::player::Player;
-use crate::quads::{create_more_obnoxious_quad_vao, create_obnoxious_quad_vao, create_unit_square_vao, render_quad};
 use glam::{vec2, vec3, vec4, Mat4, Vec3};
 use log::{error, info};
 use std::cell::RefCell;
 use std::f32::consts::PI;
 use std::rc::Rc;
+use std::time::Instant;
 use itertools::Itertools;
-use spark_gap::camera::camera::CameraMovement;
+use spark_gap::camera::camera::{Camera, CameraMovement};
 use spark_gap::camera::fly_camera_controller::FlyCameraController;
 use spark_gap::math::{get_world_ray_from_mouse, ray_plane_intersection};
 use winit::keyboard::Key;
@@ -36,7 +27,7 @@ use crate::sound_system::SoundSystem;
 use spark_gap::hash_map::HashSet;
 use spark_gap::frame_counter::FrameCounter;
 use winit::event::MouseButton;
-
+use crate::world::State;
 
 
 const PARALLELISM: i32 = 4;
@@ -75,15 +66,12 @@ const FLOOR_NON_BLUE: f32 = 0.7;
 // Enemies
 const MONSTER_SPEED: f32 = 0.6;
 
-enum CameraType {
+pub enum CameraType {
     Game,
     Floating,
     TopDown,
     Side,
 }
-
-
-
 
 #[allow(clippy::cognitive_complexity)]
 fn game_main() {
@@ -97,6 +85,7 @@ fn game_main() {
 
     // --- Shaders ---
 
+    /*
     // player, enemies, floor
     let player_shader = Shader::new("shaders/player_shader.vert", "shaders/player_shader.frag").unwrap();
     let player_emissive_shader = Shader::new("shaders/player_shader.vert", "shaders/texture_emissive_shader.frag").unwrap();
@@ -116,6 +105,7 @@ fn game_main() {
     let basicer_shader = Shader::new("shaders/basicer_shader.vert", "shaders/basicer_shader.frag").unwrap();
     let _depth_shader = Shader::new("shaders/depth_shader.vert", "shaders/depth_shader.frag").unwrap();
     let _debug_depth_shader = Shader::new("shaders/debug_depth_quad.vert", "shaders/debug_depth_quad.frag").unwrap();
+    */
 
     // --- Lighting ---
 
@@ -216,10 +206,12 @@ fn game_main() {
         first_mouse: true,
         mouse_x: scaled_width as f32 / 2.0,
         mouse_y: scaled_height as f32 / 2.0,
-        player: player.clone(),
-        enemies: vec![],
-        burn_marks: BurnMarks::new(unit_square_quad),
+        // player: player.clone(),
+        // enemies: vec![],
+        // burn_marks: BurnMarks::new(unit_square_quad),
         sound_system: SoundSystem::new(),
+        start_instant: Instant::now(),
+        input: Default::default(),
     };
 
     // Set fixed shader uniforms
@@ -805,6 +797,7 @@ fn mouse_handler(state: &mut State, xpos_in: f64, ypos_in: f64) {
 fn scroll_handler(state: &mut State, _xoffset: f64, yoffset: f64) {
     state.game_camera.process_mouse_scroll(yoffset as f32);
 }
+
 
 
  */

@@ -36,7 +36,7 @@ struct GameLighting {
     aim_rotation: mat4x4<f32>,
     light_space_matrix: mat4x4<f32>,
     view_position: vec3<f32>,
-    ambient: vec3<f32>,
+    ambient_color: vec3<f32>,
     depth_mode: i32,
     use_point_light: i32,
     use_light: i32,
@@ -168,7 +168,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
           // TODO use normal texture as well
           var diff: f32 = max(dot(normal, lightDir), 0.0);
-          var amb = game_lighting.ambient * textureSample(diffuse_texture, diffuse_sampler, in.tex_coords).xyz;
+          var amb = game_lighting.ambient_color * textureSample(diffuse_texture, diffuse_sampler, in.tex_coords).xyz;
           var bias: f32 = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
 
           bias = 0.001;

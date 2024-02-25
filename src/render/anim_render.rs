@@ -1,13 +1,11 @@
 use crate::world::World;
-use glam::{vec3, Mat4};
 use spark_gap::camera::camera_handler::CAMERA_BIND_GROUP_LAYOUT;
 use spark_gap::gpu_context::GpuContext;
 use spark_gap::material::MATERIAL_BIND_GROUP_LAYOUT;
-use spark_gap::model::Model;
 use spark_gap::model_builder::MODEL_BIND_GROUP_LAYOUT;
 use spark_gap::model_mesh::ModelVertex;
 use spark_gap::texture_config::TextureType;
-use wgpu::{IndexFormat, RenderPass, RenderPipeline, TextureView};
+use wgpu::{IndexFormat, RenderPipeline, TextureView};
 use crate::lighting::GAME_LIGHTING_BIND_GROUP_LAYOUT;
 
 pub const BACKGROUND_COLOR: wgpu::Color = wgpu::Color {
@@ -62,26 +60,26 @@ impl AnimRenderPass {
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
+        let player = &world.player.borrow();
+        let model_transform = &world.model_transform;
+
         {
             let mut render_pass = encoder.begin_render_pass(&pass_description);
 
-            let model = &world.model.model;
-            let model_transform = &world.model_transform;
-
-            model.update_model_buffers(context, &model_transform);
+            player.model.update_model_buffers(context, &model_transform);
 
             render_pass.set_pipeline(&self.render_pipeline);
 
             render_pass.set_bind_group(0, &world.camera_handler.bind_group, &[]);
-            render_pass.set_bind_group(1, &model.bind_group, &[]);
+            render_pass.set_bind_group(1, &player.model.bind_group, &[]);
             render_pass.set_bind_group(2, &world.game_lighting_handler.bind_group, &[]);
 
-            for mesh in model.meshes.iter() {
-                model.update_mesh_buffers(context, &mesh);
+            for mesh in player.model.meshes.iter() {
+                player.model.update_mesh_buffers(context, &mesh);
 
-                let diffuse_bind_group = model.get_material_bind_group(&mesh, TextureType::Diffuse);
-                let specular_bind_group = model.get_material_bind_group(&mesh, TextureType::Specular);
-                let emissive_bind_group = model.get_material_bind_group(&mesh, TextureType::Emissive);
+                let diffuse_bind_group = player.model.get_material_bind_group(&mesh, TextureType::Diffuse);
+                let specular_bind_group = player.model.get_material_bind_group(&mesh, TextureType::Specular);
+                let emissive_bind_group = player.model.get_material_bind_group(&mesh, TextureType::Emissive);
                 // let shadow_map_bind_group = model.get_material_bind_group(&mesh, TextureType::Diffuse); // shadow
 
                 render_pass.set_bind_group(3, diffuse_bind_group, &[]);

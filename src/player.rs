@@ -9,7 +9,7 @@ use spark_gap::hash_map::HashMap;
 use spark_gap::model::Model;
 use spark_gap::model_builder::ModelBuilder;
 use spark_gap::texture_config::TextureType;
-use crate::world::State;
+use crate::world::World;
 
 const PLAYER_SPEED: f32 = 5.0;
 // 1.5;
@@ -177,9 +177,9 @@ impl Player {
     //     self.model.render(shader);
     // }
 
-    pub fn update(&mut self, state: &State, aim_theta: f32) {
-        let weight_animations = self.update_animation_weights(self.direction, aim_theta, state.frame_time);
-        self.model.play_weight_animations(weight_animations.as_slice(), state.frame_time);
+    pub fn update(&mut self, world: &World, aim_theta: f32) {
+        let weight_animations = self.update_animation_weights(self.direction, aim_theta, world.frame_time);
+        self.model.play_weight_animations(weight_animations.as_slice(), world.frame_time);
     }
 
     fn update_animation_weights(&mut self, move_vec: Vec2, aim_theta: f32, frame_time: f32) -> [WeightedAnimation; 6] {
