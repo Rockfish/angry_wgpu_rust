@@ -1,34 +1,6 @@
-
-struct VertexInput {
-    @location(0) position: vec3<f32>,
-    @location(1) normal: vec3<f32>,
-    @location(2) tex_coords: vec2<f32>,
-    @location(3) tangent: vec3<f32>,
-    @location(4) bitangent: vec3<f32>,
-    @location(5) bone_ids: vec4<i32>,
-    @location(6) weights: vec4<f32>,
-}
-
-struct CameraUniform {
-   projection: mat4x4<f32>,
-   view: mat4x4<f32>,
-   position: vec3<f32>,
-}
-
-struct AnimationOutput {
-    position: vec4<f32>,
-    local_normal: vec3<f32>,
-}
-
-struct DirectionLight {
-    direction: vec3<f32>,
-    color: vec3<f32>,
-}
-
-struct PointLight {
-    world_pos: vec3<f32>,
-    color: vec3<f32>,
-}
+#define_import_path spark::player_shader
+#import spark::common::{VertexInput, CameraUniform, DirectionLight, PointLight};
+#import spark::common::{MAX_BONES, MAX_BONE_INFLUENCE, get_animated_position, AnimationOutput};
 
 struct GameLighting {
     direction_light: DirectionLight,
@@ -43,9 +15,6 @@ struct GameLighting {
     use_emissive: i32,
 }
 
-const MAX_BONES = 100;
-const MAX_BONE_INFLUENCE = 4;
-
 // camera
 @group(0) @binding(0) var<uniform> camera: CameraUniform;
 
@@ -53,6 +22,7 @@ const MAX_BONE_INFLUENCE = 4;
 @group(1) @binding(0) var<uniform> model_transform: mat4x4<f32>;
 @group(1) @binding(1) var<uniform> node_transform: mat4x4<f32>;
 @group(1) @binding(2) var<uniform> bone_transforms: array<mat4x4<f32>, MAX_BONES>;
+//@group(1) @binding(0) var<uniform> model_transforms: ModelTransforms;
 
 // game and lighting
 @group(2) @binding(0) var<uniform> game_lighting: GameLighting;
@@ -71,6 +41,7 @@ const MAX_BONE_INFLUENCE = 4;
 //@group(6) @binding(1) var shadow_map_sampler: sampler;
 
 
+
 // Vertex shader section
 
 struct VertexOutput {
@@ -86,7 +57,7 @@ fn vs_main(model: VertexInput) -> VertexOutput {
 
     var result: VertexOutput;
 
-    var anim_output = get_animated_position(model);
+    var anim_output = get_animated_position(model, node_transform, bone_transforms);
 
     result.position = camera.projection * camera.view * model_transform * anim_output.position;
     result.tex_coords = model.tex_coords;
@@ -99,58 +70,10 @@ fn vs_main(model: VertexInput) -> VertexOutput {
     return result;
 }
 
-fn get_animated_position(model: VertexInput) -> AnimationOutput {
-
-    var output: AnimationOutput;
-
-    var initial_postion = vec4<f32>(0.0);
-
-    output.position = initial_postion;
-    output.local_normal = vec3<f32>(0.0);
-
-    for (var i = 0; i < MAX_BONE_INFLUENCE; i++)
-    {
-        if (model.bone_ids[i] == -1) {
-            continue;
-        }
-
-        if (model.bone_ids[i] >= MAX_BONES) {
-            output.position = vec4<f32>(model.position, 1.0f);
-            break;
-        }
-
-        var localPosition = bone_transforms[model.bone_ids[i]] * vec4<f32>(model.position, 1.0f);
-
-        output.position += localPosition * model.weights[i];
-
-        // todo: revisit, doesn't seem right
-//        output.local_normal = mat3x3<f32>(bone_transforms[model.bone_ids[i]]) * model.normal;
-    }
-
-    if (all(output.position == initial_postion)) {
-        output.position = node_transform * vec4<f32>(model.position, 1.0f);
-    }
-
-    return output;
-}
 
 // Fragment shader section
 
-//fn ShadowCalculation(bias: f32, fragPosLightSpace: vec4<f32>) -> f32 {
-//
-//  var projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-//  projCoords = projCoords * 0.5 + 0.5;
-//
-//  var closestDepth = textureSample(shadow_map_texture, shadow_map_sampler, projCoords.xy).r;
-//  var currentDepth = projCoords.z;
-//
-//  var shadow = 0.0;
-//  if (currentDepth - bias) > closestDepth {
-//    shadow = 1.0;
-//  };
-//
-//  return shadow;
-//}
+
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
@@ -205,3 +128,18 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     return color;
 }
 
+//fn ShadowCalculation(bias: f32, fragPosLightSpace: vec4<f32>) -> f32 {
+//
+//  var projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+//  projCoords = projCoords * 0.5 + 0.5;
+//
+//  var closestDepth = textureSample(shadow_map_texture, shadow_map_sampler, projCoords.xy).r;
+//  var currentDepth = projCoords.z;
+//
+//  var shadow = 0.0;
+//  if (currentDepth - bias) > closestDepth {
+//    shadow = 1.0;
+//  };
+//
+//  return shadow;
+//}

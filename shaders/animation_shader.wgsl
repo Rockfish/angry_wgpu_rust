@@ -1,3 +1,4 @@
+#define_import_path spark::animation_shader
 
 struct VertexInput {
     @location(0) position: vec3<f32>,

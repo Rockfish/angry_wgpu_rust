@@ -152,14 +152,14 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
     let game_lighting_uniform = GameLightingUniform{
         direction_light,
         point_light,
-        aim_rotation: Default::default(),
-        light_space_matrix: Default::default(),
-        view_position: Default::default(),
+        aim_rotation: Mat4::IDENTITY,
+        light_space_matrix: Mat4::IDENTITY,
+        view_position: vec3(100.0, 100.0, 300.0),
         ambient_color,
         depth_mode: 0,
-        use_point_light: 0,
-        use_light: 0,
-        use_emissive: 0,
+        use_point_light: 1,
+        use_light: 1,
+        use_emissive: 1,
         _pad: [0.0; 6],
     };
 
@@ -172,7 +172,7 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
     // let mut muzzle_flash = MuzzleFlash::new(unit_square_quad);
     // let mut bullet_store = BulletStore::new(unit_square_quad);
 
-    let depth_texture_view = create_depth_texture_view(&context);
+
 
     let player_render = AnimRenderPass::new(&mut context);
 
@@ -183,10 +183,10 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
         camera_handler,
         camera_follow_vec,
         player: player.into(),
-        player_render,
+        player_render: player_render.into(),
         model_transform,
         game_lighting_handler,
-        depth_texture_view,
+        // depth_texture_view,
         run: false,
         viewport_width: 0,
         viewport_height: 0,
@@ -242,7 +242,7 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
                             context.resize(new_size);
                             world.camera_controller.resize(&context);
                             world.camera_handler.update_camera(&context, &world.camera_controller);
-                            world.depth_texture_view = create_depth_texture_view(&context);
+                            // world.depth_texture_view = create_depth_texture_view(&context);
                             context.window.request_redraw();
                         }
                         WindowEvent::CloseRequested => target.exit(),
@@ -374,10 +374,10 @@ fn game_run(context: &GpuContext, mut world: &mut World) {
     world.game_lighting_handler.uniform.light_space_matrix = light_space_matrix;
     world.game_lighting_handler.uniform.use_point_light = if use_point_light { 1 } else { 0 };
 
-    world.player.borrow().model.update_animation(world.delta_time - 0.004);
+    world.player.borrow().model.borrow().update_animation(world.delta_time - 0.004);
     world.player.borrow_mut().update(&world, 1.0);
 
-    world.player_render.render(&context, &world);
+    world.player_render.borrow_mut().render(&context, &world);
 
     // world.buffer_ready = true;
 }

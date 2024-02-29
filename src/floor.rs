@@ -1,5 +1,7 @@
 use glam::{vec3, Mat4};
-/*
+use spark_gap::texture::Texture;
+use spark_gap::texture_config::{TextureConfig, TextureFilter, TextureType, TextureWrap};
+
 const FLOOR_SIZE: f32 = 100.0;
 const TILE_SIZE: f32 = 1.0;
 const NUM_TILE_WRAPS: f32 = FLOOR_SIZE / TILE_SIZE;
@@ -16,13 +18,13 @@ const FLOOR_VERTICES: [f32; 30] = [
 ];
 
 pub struct Floor {
-    pub floor_vao: GLuint,
-    pub floor_vbo: GLuint,
+    // pub floor_vao: GLuint,
+    // pub floor_vbo: GLuint,
     pub texture_floor_diffuse: Texture,
     pub texture_floor_normal: Texture,
     pub texture_floor_spec: Texture,
 }
-
+/*
 impl Floor {
     pub fn new() -> Self {
         let texture_config = TextureConfig {
@@ -38,8 +40,8 @@ impl Floor {
         let texture_floor_normal = Texture::new("assets/Models/Floor N.png", &texture_config).unwrap();
         let texture_floor_spec = Texture::new("assets/Models/Floor M.png", &texture_config).unwrap();
 
-        let mut floor_vao: GLuint = 0;
-        let mut floor_vbo: GLuint = 0;
+        // let mut floor_vao: GLuint = 0;
+        // let mut floor_vbo: GLuint = 0;
 
         unsafe {
             gl::GenVertexArrays(1, &mut floor_vao);
@@ -59,8 +61,8 @@ impl Floor {
         }
 
         Self {
-            floor_vao,
-            floor_vbo,
+            // floor_vao,
+            // floor_vbo,
             texture_floor_diffuse,
             texture_floor_normal,
             texture_floor_spec,
@@ -89,6 +91,5 @@ impl Floor {
         }
     }
 }
+*/
 
-
- */

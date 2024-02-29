@@ -112,11 +112,11 @@ impl GameLightingHandler {
         }
     }
 
-    pub fn update_camera(&self, context: &GpuContext, lighting_uniform: GameLightingUniform) {
+    pub fn update_lighting(&self, context: &GpuContext) {
         // let camera_uniform = camera_controller.get_camera_uniform();
         context
             .queue
-            .write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[lighting_uniform]));
+            .write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[self.uniform]));
     }
 }
 
