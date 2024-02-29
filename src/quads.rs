@@ -1,3 +1,5 @@
+use spark_gap::gpu_context::GpuContext;
+use wgpu::util::DeviceExt;
 
 #[rustfmt::skip]
 const UNIT_SQUARE: [f32; 30] = [
@@ -72,7 +74,57 @@ pub fn create_unit_square_vao() -> GLuint {
     }
     unit_square_vao
 }
+*/
 
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct SmallMeshVertex {
+    pub position: [f32; 3],
+    pub tex_coords: [f32; 2],
+}
+
+pub struct SmallMesh {
+    pub vertex_buffer: wgpu::Buffer,
+    pub num_elements: u32,
+}
+
+impl SmallMesh {
+    pub fn desc() -> wgpu::VertexBufferLayout<'static> {
+        use std::mem;
+        wgpu::VertexBufferLayout {
+            array_stride: mem::size_of::<SmallMeshVertex>() as wgpu::BufferAddress,
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: &[
+                // vertices
+                wgpu::VertexAttribute {
+                    offset: 0,
+                    shader_location: 0,
+                    format: wgpu::VertexFormat::Float32x3,
+                },
+                // tex coords
+                wgpu::VertexAttribute {
+                    offset: mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
+                    shader_location: 1,
+                    format: wgpu::VertexFormat::Float32x2,
+                },
+            ],
+        }
+    }
+}
+pub fn create_unit_square(context: &mut GpuContext) -> SmallMesh {
+    let vertex_buffer = context.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("Vertex Buffer"),
+        contents: bytemuck::cast_slice(&UNIT_SQUARE),
+        usage: wgpu::BufferUsages::VERTEX,
+    });
+
+    SmallMesh {
+        vertex_buffer,
+        num_elements: 6,
+    }
+}
+
+/*
 pub fn create_more_obnoxious_quad_vao() -> GLuint {
     let mut more_obnoxious_quad_vao: GLuint = 0;
     let mut more_obnoxious_quad_vbo: GLuint = 0;

@@ -1,17 +1,17 @@
 use glam::Vec3;
-use spark_gap::texture::Texture;
+use spark_gap::material::Material;
 
 #[derive(Debug)]
 pub struct SpriteSheet {
-    pub texture: Texture,
+    pub material: Material,
     pub num_columns: i32,
     pub time_per_sprite: f32,
 }
 
 impl SpriteSheet {
-    pub const fn new(texture_unit: Texture, num_columns: i32, time_per_sprite: f32) -> Self {
+    pub const fn new(material: Material, num_columns: i32, time_per_sprite: f32) -> Self {
         Self {
-            texture: texture_unit,
+            material,
             num_columns,
             time_per_sprite,
         }

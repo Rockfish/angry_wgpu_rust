@@ -4,6 +4,14 @@ use crate::geom::{distance_between_line_segments, oriented_angle};
 use crate::sprite_sheet::{SpriteSheet, SpriteSheetSprite};
 use glam::{vec3, vec4, Mat4, Quat, Vec3, Vec4Swizzles};
 use std::f32::consts::PI;
+use spark_gap::{SIZE_OF_QUAT, SIZE_OF_VEC3};
+use spark_gap::gpu_context::GpuContext;
+use spark_gap::material::Material;
+use spark_gap::texture::Texture;
+use spark_gap::texture_config::{TextureConfig, TextureFilter, TextureType, TextureWrap};
+use crate::capsule::Capsule;
+use crate::enemy::{Enemy, ENEMY_COLLIDER};
+use crate::world::World;
 
 pub struct BulletGroup {
     start_index: usize,
@@ -21,18 +29,17 @@ impl BulletGroup {
     }
 }
 
-/*
 
 pub struct BulletStore {
     all_bullet_positions: Vec<Vec3>,
     all_bullet_rotations: Vec<Quat>,
     all_bullet_directions: Vec<Vec3>,
     // thread_pool
-    bullet_vao: GLuint,
-    rotation_vbo: GLuint,
-    offset_vbo: GLuint,
+    // bullet_vao: GLuint,
+    // rotation_vbo: GLuint,
+    // offset_vbo: GLuint,
     bullet_groups: Vec<BulletGroup>,
-    bullet_texture: Texture,
+    bullet_material: Material,
     bullet_impact_spritesheet: SpriteSheet,
     bullet_impact_sprites: Vec<SpriteSheetSprite>,
     unit_square_vao: i32,
@@ -106,14 +113,14 @@ const BULLET_INDICES_H_V: [i32; 12] = [
 ];
 
 impl BulletStore {
-    pub fn new(unit_square_vao: i32) -> Self {
+    pub fn new(context: &mut GpuContext, unit_square_vao: i32) -> Self {
         // initialize_buffer_and_create
-        let mut bullet_vao: GLuint = 0;
-        let mut bullet_vertices_vbo: GLuint = 0;
-        let mut bullet_indices_ebo: GLuint = 0;
+        // let mut bullet_vao: GLuint = 0;
+        // let mut bullet_vertices_vbo: GLuint = 0;
+        // let mut bullet_indices_ebo: GLuint = 0;
 
-        let mut instance_rotation_vbo: GLuint = 0;
-        let mut instance_offset_vbo: GLuint = 0;
+        // let mut instance_rotation_vbo: GLuint = 0;
+        // let mut instance_offset_vbo: GLuint = 0;
 
         let texture_config = TextureConfig {
             flip_v: false,
@@ -124,13 +131,14 @@ impl BulletStore {
             wrap: TextureWrap::Repeat,
         };
 
-        let bullet_texture = Texture::new("angrygl_assets/bullet/bullet_texture_transparent.png", &texture_config).unwrap();
+        let bullet_material = Material::new(context, "angrygl_assets/bullet/bullet_texture_transparent.png", &texture_config).unwrap();
         // let bullet_texture = Texture::new("angrygl_assets/bullet/red_bullet_transparent.png", &texture_config).unwrap();
         // let bullet_texture = Texture::new("angrygl_assets/bullet/red_and_green_bullet_transparent.png", &texture_config).unwrap();
 
         let vertices = BULLET_VERTICES_H_V;
         let indices = BULLET_INDICES_H_V;
 
+        /*
         unsafe {
             gl::GenVertexArrays(1, &mut bullet_vao);
 
@@ -185,19 +193,20 @@ impl BulletStore {
             gl::VertexAttribPointer(3, 3, gl::FLOAT, gl::FALSE, SIZE_OF_VEC3 as GLsizei, std::ptr::null::<GLvoid>());
             gl::VertexAttribDivisor(3, 1); // one offset per bullet instance
         }
+         */
 
-        let texture_impact_sprite_sheet = Texture::new("angrygl_assets/bullet/impact_spritesheet_with_00.png", &texture_config).unwrap();
-        let bullet_impact_spritesheet = SpriteSheet::new(texture_impact_sprite_sheet, 11, 0.05);
+        let impact_sprite_sheet_material = Material::new(context, "angrygl_assets/bullet/impact_spritesheet_with_00.png", &texture_config).unwrap();
+        let bullet_impact_spritesheet = SpriteSheet::new(impact_sprite_sheet_material, 11, 0.05);
 
         Self {
             all_bullet_positions: Default::default(),
             all_bullet_rotations: Default::default(),
             all_bullet_directions: Default::default(),
-            bullet_vao,
-            rotation_vbo: instance_rotation_vbo,
-            offset_vbo: instance_offset_vbo,
+            // bullet_vao,
+            // rotation_vbo: instance_rotation_vbo,
+            // offset_vbo: instance_offset_vbo,
             bullet_groups: vec![],
-            bullet_texture,
+            bullet_material,
             bullet_impact_spritesheet,
             bullet_impact_sprites: vec![],
             unit_square_vao,
@@ -269,18 +278,18 @@ impl BulletStore {
         self.bullet_groups.push(bullet_group);
     }
 
-    pub fn update_bullets(&mut self, state: &mut State) {
+    pub fn update_bullets(&mut self, world: &mut World) {
         //}, bulletImpactSprites: &mut Vec<SpriteSheetSprite>) {
 
-        let use_aabb = !state.enemies.is_empty();
+        let use_aabb = !world.enemies.is_empty();
         let num_sub_groups = if use_aabb { 9 } else { 1 };
 
-        let delta_position_magnitude = state.delta_time * BULLET_SPEED;
+        let delta_position_magnitude = world.delta_time * BULLET_SPEED;
 
         let mut first_live_bullet_group: usize = 0;
 
         for group in self.bullet_groups.iter_mut() {
-            group.time_to_live -= state.delta_time;
+            group.time_to_live -= world.delta_time;
 
             if group.time_to_live <= 0.0 {
                 first_live_bullet_group += 1;
@@ -316,8 +325,8 @@ impl BulletStore {
                         subgroup_bound_box.expand_by(BULLET_ENEMY_MAX_COLLISION_DIST);
                     }
 
-                    for i in 0..state.enemies.len() {
-                        let enemy = &mut state.enemies[i];
+                    for i in 0..world.enemies.len() {
+                        let enemy = &mut world.enemies[i];
 
                         if use_aabb && !subgroup_bound_box.contains_point(enemy.position) {
                             continue;
@@ -358,55 +367,54 @@ impl BulletStore {
 
         if !self.bullet_impact_sprites.is_empty() {
             for sheet in self.bullet_impact_sprites.iter_mut() {
-                sheet.age += &state.delta_time;
+                sheet.age += &world.delta_time;
             }
             let sprite_duration = self.bullet_impact_spritesheet.num_columns as f32 * self.bullet_impact_spritesheet.time_per_sprite;
 
             self.bullet_impact_sprites.retain(|sprite| sprite.age < sprite_duration);
         }
 
-        for enemy in state.enemies.iter() {
+        for enemy in world.enemies.iter() {
             if !enemy.is_alive {
                 self.bullet_impact_sprites.push(SpriteSheetSprite::new(enemy.position));
-                state.burn_marks.add_mark(enemy.position);
-                state.sound_system.play_enemy_destroyed();
+                world.burn_marks.add_mark(enemy.position);
+                world.sound_system.play_enemy_destroyed();
             }
         }
 
-        state.enemies.retain(|e| e.is_alive);
+        world.enemies.retain(|e| e.is_alive);
     }
 
-    pub fn draw_bullets(&mut self, shader: &Shader, projection_view: &Mat4) {
+    pub fn draw_bullets(&mut self, projection_view: &Mat4) {
         if self.all_bullet_positions.is_empty() {
             return;
         }
 
-        unsafe {
-            gl::Enable(gl::BLEND);
-            gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-            // gl::BlendFunc(gl::ONE, gl::ONE_MINUS_SRC_ALPHA);
+        // unsafe {
+        //     gl::Enable(gl::BLEND);
+        //     gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+        //     gl::DepthMask(gl::FALSE);
+        //     gl::Disable(gl::CULL_FACE);
+        // }
 
-            gl::DepthMask(gl::FALSE);
-            gl::Disable(gl::CULL_FACE);
-        }
+        // shader.use_shader();
+        // shader.set_mat4("PV", projection_view);
+        // shader.set_bool("useLight", false);
 
-        shader.use_shader();
-        shader.set_mat4("PV", projection_view);
-        shader.set_bool("useLight", false);
-
-        bind_texture(shader, 0, "texture_diffuse", &self.bullet_texture);
-        bind_texture(shader, 1, "texture_normal", &self.bullet_texture);
+        // bind_texture(shader, 0, "texture_diffuse", &self.bullet_texture);
+        // bind_texture(shader, 1, "texture_normal", &self.bullet_texture);
 
         self.render_bullet_sprites();
 
-        unsafe {
-            gl::Disable(gl::BLEND);
-            gl::Enable(gl::CULL_FACE);
-            gl::DepthMask(gl::TRUE);
-        }
+        // unsafe {
+        //     gl::Disable(gl::BLEND);
+        //     gl::Enable(gl::CULL_FACE);
+        //     gl::DepthMask(gl::TRUE);
+        // }
     }
 
     pub fn render_bullet_sprites(&self) {
+        /*
         unsafe {
             gl::BindVertexArray(self.bullet_vao);
 
@@ -436,25 +444,25 @@ impl BulletStore {
                 self.all_bullet_positions.len() as GLsizei,
             );
         }
+         */
     }
 
-    pub fn draw_bullet_impacts(&self, sprite_shader: &Shader, projection_view: &Mat4) {
-        sprite_shader.use_shader();
-        sprite_shader.set_mat4("PV", projection_view);
+    // needs layout, buffers, and render
+    pub fn draw_bullet_impacts(&self, world: &World, projection_view: &Mat4) {
 
-        sprite_shader.set_int("numCols", self.bullet_impact_spritesheet.num_columns);
-        sprite_shader.set_float("timePerSprite", self.bullet_impact_spritesheet.time_per_sprite);
+        // sprite_shader.set_mat4("PV", projection_view);
+        // sprite_shader.set_int("numCols", self.bullet_impact_spritesheet.num_columns);
+        // sprite_shader.set_float("timePerSprite", self.bullet_impact_spritesheet.time_per_sprite);
 
-        bind_texture(sprite_shader, 0, "spritesheet", &self.bullet_impact_spritesheet.texture);
+        // bind_texture(sprite_shader, 0, "spritesheet", &self.bullet_impact_spritesheet.texture);
 
-        unsafe {
-            gl::Enable(gl::BLEND);
-            // gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-            gl::DepthMask(gl::FALSE);
-            gl::Disable(gl::CULL_FACE);
-
-            gl::BindVertexArray(self.unit_square_vao as GLuint);
-        }
+        // unsafe {
+        //     gl::Enable(gl::BLEND);
+            // gl::DepthMask(gl::FALSE);
+            // gl::Disable(gl::CULL_FACE);
+            //
+            // gl::BindVertexArray(self.unit_square_vao as GLuint);
+        // }
 
         let scale = 2.0f32; // 0.25f32;
 
@@ -473,19 +481,19 @@ impl BulletStore {
 
             model *= Mat4::from_scale(vec3(scale, scale, scale));
 
-            sprite_shader.set_float("age", sprite.age);
-            sprite_shader.set_mat4("model", &model);
+            // sprite_shader.set_float("age", sprite.age);
+            // sprite_shader.set_mat4("model", &model);
 
-            unsafe {
-                gl::DrawArrays(gl::TRIANGLES, 0, 6);
-            }
+            // unsafe {
+            //     gl::DrawArrays(gl::TRIANGLES, 0, 6);
+            // }
         }
 
-        unsafe {
-            gl::Disable(gl::BLEND);
-            gl::Enable(gl::CULL_FACE);
-            gl::DepthMask(gl::TRUE);
-        }
+        // unsafe {
+        //     gl::Disable(gl::BLEND);
+        //     gl::Enable(gl::CULL_FACE);
+        //     gl::DepthMask(gl::TRUE);
+        // }
     }
 }
 
@@ -575,5 +583,3 @@ mod tests {
     }
 }
 
-
- */

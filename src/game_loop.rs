@@ -1,8 +1,8 @@
 use std::cell::RefCell;
 use std::f32::consts::PI;
 use std::rc::Rc;
-use crate::render::anim_render::{create_depth_texture_view, AnimRenderPass};
-use crate::world::World;
+use crate::render::main_render::{create_depth_texture_view, AnimRenderPass};
+use crate::world::{FLOOR_LIGHT_FACTOR, FLOOR_NON_BLUE, LIGHT_FACTOR, NON_BLUE, PLAYER_MODEL_SCALE, World};
 use glam::{vec3, Mat4, Vec3, vec4};
 use spark_gap::camera::camera_handler::CameraHandler;
 use spark_gap::camera::fly_camera_controller::FlyCameraController;
@@ -19,6 +19,8 @@ use winit::event_loop::EventLoop;
 use winit::keyboard;
 use winit::keyboard::NamedKey::Escape;
 use winit::window::Window;
+use crate::burn_marks::BurnMarks;
+use crate::enemy::EnemySystem;
 use crate::lighting::{DirectionLight, GameLightingHandler, GameLightingUniform, PointLight};
 use crate::player::Player;
 use crate::sound_system::SoundSystem;
@@ -32,32 +34,6 @@ const VIEW_PORT_HEIGHT: i32 = 1000;
 // const VIEW_PORT_HEIGHT: i32 = 500;
 
 // Player
-const FIRE_INTERVAL: f32 = 0.1;
-// seconds
-const SPREAD_AMOUNT: i32 = 20;
-
-const PLAYER_COLLISION_RADIUS: f32 = 0.35;
-
-// Models
-const PLAYER_MODEL_SCALE: f32 = 0.0044;
-//const PLAYER_MODEL_GUN_HEIGHT: f32 = 120.0; // un-scaled
-const PLAYER_MODEL_GUN_HEIGHT: f32 = 110.0;
-// un-scaled
-const PLAYER_MODEL_GUN_MUZZLE_OFFSET: f32 = 100.0;
-// un-scaled
-const MONSTER_Y: f32 = PLAYER_MODEL_SCALE * PLAYER_MODEL_GUN_HEIGHT;
-
-// Lighting
-const LIGHT_FACTOR: f32 = 0.8;
-const NON_BLUE: f32 = 0.9;
-
-const BLUR_SCALE: i32 = 2;
-
-const FLOOR_LIGHT_FACTOR: f32 = 0.35;
-const FLOOR_NON_BLUE: f32 = 0.7;
-
-// Enemies
-const MONSTER_SPEED: f32 = 0.6;
 
 pub enum CameraType {
     Game,
@@ -168,7 +144,7 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
 
     let mut player = Player::new(&mut context);
     // let floor = Floor::new();
-    // let mut enemies = EnemySystem::new();
+    let mut enemies = EnemySystem::new(&mut context);
     // let mut muzzle_flash = MuzzleFlash::new(unit_square_quad);
     // let mut bullet_store = BulletStore::new(unit_square_quad);
 
@@ -208,6 +184,8 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
         mouse_x: 0.0,
         mouse_y: 0.0,
         input: Input::default(),
+        enemies: vec![],
+        burn_marks: BurnMarks::new(&mut context, 0),
         sound_system: SoundSystem::new(),
         buffer_ready: false,
     };

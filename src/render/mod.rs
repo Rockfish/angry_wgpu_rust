@@ -2,7 +2,8 @@ use std::borrow::Cow;
 use std::io::Read;
 use naga_oil::compose::{ComposableModuleDefinition, ComposableModuleDescriptor, Composer, ComposerError, NagaModuleDescriptor};
 
-pub mod anim_render;
+pub mod main_render;
+mod player_render;
 
 fn try_every_shader_file(
     composer: &mut Composer,

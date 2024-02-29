@@ -9,11 +9,40 @@ use spark_gap::camera::camera::Camera;
 use spark_gap::hash_map::HashSet;
 use wgpu::TextureView;
 use winit::keyboard::Key;
+use crate::burn_marks::BurnMarks;
+use crate::enemy::Enemy;
 use crate::game_loop::CameraType;
 use crate::lighting::GameLightingHandler;
 use crate::player::Player;
-use crate::render::anim_render::AnimRenderPass;
+use crate::render::main_render::AnimRenderPass;
 use crate::sound_system::SoundSystem;
+
+pub const FIRE_INTERVAL: f32 = 0.1;
+// seconds
+pub const SPREAD_AMOUNT: i32 = 20;
+
+pub const PLAYER_COLLISION_RADIUS: f32 = 0.35;
+
+// Models
+pub const PLAYER_MODEL_SCALE: f32 = 0.0044;
+//const PLAYER_MODEL_GUN_HEIGHT: f32 = 120.0; // un-scaled
+pub const PLAYER_MODEL_GUN_HEIGHT: f32 = 110.0;
+// un-scaled
+pub const PLAYER_MODEL_GUN_MUZZLE_OFFSET: f32 = 100.0;
+// un-scaled
+pub const MONSTER_Y: f32 = PLAYER_MODEL_SCALE * PLAYER_MODEL_GUN_HEIGHT;
+
+// Lighting
+pub const LIGHT_FACTOR: f32 = 0.8;
+pub const NON_BLUE: f32 = 0.9;
+
+pub const BLUR_SCALE: i32 = 2;
+
+pub const FLOOR_LIGHT_FACTOR: f32 = 0.35;
+pub const FLOOR_NON_BLUE: f32 = 0.7;
+
+// Enemies
+pub const MONSTER_SPEED: f32 = 0.6;
 
 pub struct World {
     pub camera_controller: FlyCameraController,
@@ -46,8 +75,8 @@ pub struct World {
     pub mouse_y: f32,
     pub input: Input,
     // pub player: Rc<RefCell<Player>>,
-    // pub enemies: Vec<Enemy>,
-    // pub burn_marks: BurnMarks,
+    pub enemies: Vec<Enemy>,
+    pub burn_marks: BurnMarks,
     pub sound_system: SoundSystem,
     pub buffer_ready: bool,
 }

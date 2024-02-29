@@ -7,6 +7,7 @@ mod aabb;
 mod bullets;
 mod bullets_parallel;
 mod burn_marks;
+mod capsule;
 mod enemy;
 mod floor;
 mod framebuffers;
