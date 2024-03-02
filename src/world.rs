@@ -9,10 +9,14 @@ use spark_gap::camera::camera::Camera;
 use spark_gap::hash_map::HashSet;
 use wgpu::TextureView;
 use winit::keyboard::Key;
+use crate::bullets::BulletSystem;
 use crate::burn_marks::BurnMarks;
-use crate::enemy::Enemy;
+use crate::enemy::{Enemy, EnemySystem};
+use crate::floor::Floor;
 use crate::game_loop::CameraType;
-use crate::lighting::GameLightingHandler;
+use crate::lighting::floor_lighting::FloorLightingHandler;
+use crate::lighting::player_lighting::PlayerLightingHandler;
+use crate::muzzle_flash::MuzzleFlash;
 use crate::player::Player;
 use crate::render::main_render::AnimRenderPass;
 use crate::sound_system::SoundSystem;
@@ -48,10 +52,6 @@ pub struct World {
     pub camera_controller: FlyCameraController,
     pub camera_handler: CameraHandler,
     pub camera_follow_vec: Vec3,
-    pub player: RefCell<Player>,
-    pub player_render: RefCell<AnimRenderPass>,
-    pub model_transform: Mat4,
-    pub game_lighting_handler: GameLightingHandler,
     // pub depth_texture_view: TextureView,
     pub run: bool,
     pub viewport_width: i32,
@@ -74,7 +74,15 @@ pub struct World {
     pub mouse_x: f32,
     pub mouse_y: f32,
     pub input: Input,
-    // pub player: Rc<RefCell<Player>>,
+    pub player: RefCell<Player>,
+    pub scene_render: RefCell<AnimRenderPass>,
+    pub player_transform: Mat4,
+    pub player_lighting_handler: PlayerLightingHandler,
+    pub floor: RefCell<Floor>,
+    pub floor_lighting_handler: FloorLightingHandler,
+    pub enemy_system: Rc<RefCell<EnemySystem>>,
+    pub muzzle_flash: Rc<RefCell<MuzzleFlash>>,
+    pub bullet_system: Rc<RefCell<BulletSystem>>,
     pub enemies: Vec<Enemy>,
     pub burn_marks: BurnMarks,
     pub sound_system: SoundSystem,

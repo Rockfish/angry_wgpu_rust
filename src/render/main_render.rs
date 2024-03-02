@@ -1,6 +1,9 @@
+use glam::Mat4;
 use crate::world::World;
 use spark_gap::gpu_context::GpuContext;
 use wgpu::{RenderPipeline, TextureView};
+use crate::floor;
+use crate::render::floor_render::{create_floor_shader_pipeline, render_floor};
 use crate::render::player_render::{create_player_shader_pipeline, render_model};
 
 pub const BACKGROUND_COLOR: wgpu::Color = wgpu::Color {
@@ -12,16 +15,20 @@ pub const BACKGROUND_COLOR: wgpu::Color = wgpu::Color {
 
 pub struct AnimRenderPass {
     player_shader_pipeline: RenderPipeline,
+    floor_shader_pipeline: RenderPipeline,
     pub depth_texture_view: TextureView,
 }
 
 impl AnimRenderPass {
     pub fn new(context: &GpuContext) -> Self {
         let player_shader_pipeline = create_player_shader_pipeline(context);
+        let floor_shader_pipeline = create_floor_shader_pipeline(context);
+
         let depth_texture_view = create_depth_texture_view(&context);
 
         Self {
             player_shader_pipeline,
+            floor_shader_pipeline,
             depth_texture_view,
         }
     }
@@ -67,11 +74,19 @@ impl AnimRenderPass {
         let player = &world.player.borrow();
         let model = player.model.borrow();
 
+        let floor = &world.floor.borrow();
+
         {
             let mut render_pass = encoder.begin_render_pass(&pass_description);
 
+
+            render_pass.set_pipeline(&self.floor_shader_pipeline);
+            render_pass = render_floor(context, world, render_pass, floor);
+
+
             render_pass.set_pipeline(&self.player_shader_pipeline);
-            let _render_pass = render_model(context, world, render_pass, &model);
+            let _render_pass = render_model(context, world, render_pass, &model, &world.player_transform);
+
         }
 
         context.queue.submit(Some(encoder.finish()));

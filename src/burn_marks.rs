@@ -1,8 +1,8 @@
 use glam::{vec3, Mat4, Vec3};
 use spark_gap::gpu_context::GpuContext;
 use spark_gap::material::Material;
-use spark_gap::texture::Texture;
 use spark_gap::texture_config::{TextureConfig, TextureWrap};
+use crate::small_mesh::SmallMesh;
 
 const BURN_MARK_TIME: f32 = 5.0;
 
@@ -12,18 +12,18 @@ pub struct BurnMark {
 }
 
 pub struct BurnMarks {
-    unit_square_vao: i32,
+    unit_square: SmallMesh,
     mark_material: Material,
     marks: Vec<BurnMark>,
 }
 
 impl BurnMarks {
-    pub fn new(context: &mut GpuContext, unit_square_vao: i32) -> Self {
+    pub fn new(context: &mut GpuContext, unit_square: SmallMesh) -> Self {
         let texture_config = TextureConfig::new().set_wrap(TextureWrap::Repeat);
         let mark_material = Material::new(context, "angrygl_assets/bullet/burn_mark.png", &texture_config).unwrap();
 
         Self {
-            unit_square_vao,
+            unit_square,
             mark_material,
             marks: vec![],
         }

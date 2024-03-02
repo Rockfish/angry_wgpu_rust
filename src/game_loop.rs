@@ -2,9 +2,9 @@ use std::cell::RefCell;
 use std::f32::consts::PI;
 use std::rc::Rc;
 use crate::render::main_render::{create_depth_texture_view, AnimRenderPass};
-use crate::world::{FLOOR_LIGHT_FACTOR, FLOOR_NON_BLUE, LIGHT_FACTOR, NON_BLUE, PLAYER_MODEL_SCALE, World};
+use crate::world::{FIRE_INTERVAL, FLOOR_LIGHT_FACTOR, FLOOR_NON_BLUE, LIGHT_FACTOR, NON_BLUE, PLAYER_MODEL_SCALE, SPREAD_AMOUNT, World};
 use glam::{vec3, Mat4, Vec3, vec4};
-use spark_gap::camera::camera_handler::CameraHandler;
+use spark_gap::camera::camera_handler::{CameraHandler, CameraUniform};
 use spark_gap::camera::fly_camera_controller::FlyCameraController;
 use spark_gap::frame_counter::FrameCounter;
 use spark_gap::gpu_context::GpuContext;
@@ -19,10 +19,16 @@ use winit::event_loop::EventLoop;
 use winit::keyboard;
 use winit::keyboard::NamedKey::Escape;
 use winit::window::Window;
+use crate::bullets::BulletSystem;
 use crate::burn_marks::BurnMarks;
 use crate::enemy::EnemySystem;
-use crate::lighting::{DirectionLight, GameLightingHandler, GameLightingUniform, PointLight};
+use crate::floor::Floor;
+use crate::lighting::common::{DirectionLight, PointLight};
+use crate::lighting::floor_lighting::{FloorLightingHandler, FloorLightingUniform};
+use crate::lighting::player_lighting::{PlayerLightingHandler, PlayerLightingUniform};
+use crate::muzzle_flash::MuzzleFlash;
 use crate::player::Player;
+use crate::quads::{create_more_obnoxious_quad, create_obnoxious_quad, create_unit_square};
 use crate::sound_system::SoundSystem;
 
 const PARALLELISM: i32 = 4;
@@ -125,12 +131,14 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
         color: Default::default(),
     };
 
-    let game_lighting_uniform = GameLightingUniform{
-        direction_light,
-        point_light,
+    let view_position = vec3(100.0, 100.0, 300.0);
+
+    let player_lighting_uniform = PlayerLightingUniform {
+        direction_light: direction_light.clone(),
+        point_light: point_light.clone(),
         aim_rotation: Mat4::IDENTITY,
         light_space_matrix: Mat4::IDENTITY,
-        view_position: vec3(100.0, 100.0, 300.0),
+        view_position: view_position.clone(),
         ambient_color,
         depth_mode: 0,
         use_point_light: 1,
@@ -138,31 +146,41 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
         use_emissive: 1,
         _pad: [0.0; 6],
     };
+    
+    let floor_lighting_uniform = FloorLightingUniform {
+        direction_light,
+        point_light,
+        ambient_color,
+        view_position,
+        use_lighting: 0,
+        use_specular: 0,
+        use_point_light: 0,
+    };
 
-    let game_lighting_handler = GameLightingHandler::new(&mut context, game_lighting_uniform);
+    let player_lighting_handler = PlayerLightingHandler::new(&mut context, player_lighting_uniform);
+    let floor_lighting_handler = FloorLightingHandler::new(&mut context, floor_lighting_uniform);
 
+    // --- quads ---
+
+    let unit_square_quad = create_unit_square(&mut context);
+    let _obnoxious_quad = create_obnoxious_quad(&mut context);
+    let more_obnoxious_quad = create_more_obnoxious_quad(&mut context);
 
     let mut player = Player::new(&mut context);
-    // let floor = Floor::new();
-    let mut enemies = EnemySystem::new(&mut context);
-    // let mut muzzle_flash = MuzzleFlash::new(unit_square_quad);
-    // let mut bullet_store = BulletStore::new(unit_square_quad);
+    let floor = Floor::new(&mut context);
+    let mut enemy_system = EnemySystem::new(&mut context);
+    let mut muzzle_flash = MuzzleFlash::new(&mut context, unit_square_quad.clone());
+    let mut bullet_system = BulletSystem::new(&mut context, unit_square_quad.clone());
 
-
-
-    let player_render = AnimRenderPass::new(&mut context);
+    let scene_render = AnimRenderPass::new(&mut context);
 
     let model_transform = Mat4::from_translation(vec3(0.0, 0.0, 1.0));
 
     let mut world = World {
-        camera_controller,
-        camera_handler,
-        camera_follow_vec,
-        player: player.into(),
-        player_render: player_render.into(),
-        model_transform,
-        game_lighting_handler,
-        // depth_texture_view,
+        start_instant: Instant::now(),
+        delta_time: 0.0,
+        frame_time: 0.0,
+        first_mouse: false,
         run: false,
         viewport_width: 0,
         viewport_height: 0,
@@ -170,6 +188,12 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
         scaled_height: 0,
         window_scale: (0.0, 0.0),
         key_presses: Default::default(),
+        mouse_x: 0.0,
+        mouse_y: 0.0,
+        input: Input::default(),
+        camera_controller,
+        camera_handler,
+        camera_follow_vec,
         game_camera,
         floating_camera,
         ortho_camera,
@@ -177,15 +201,17 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
         game_projection,
         floating_projection,
         orthographic_projection,
-        start_instant: Instant::now(),
-        delta_time: 0.0,
-        frame_time: 0.0,
-        first_mouse: false,
-        mouse_x: 0.0,
-        mouse_y: 0.0,
-        input: Input::default(),
+        player: player.into(),
+        scene_render: scene_render.into(),
+        player_transform: model_transform,
+        player_lighting_handler,
+        floor: floor.into(),
+        floor_lighting_handler,
+        enemy_system: RefCell::new(enemy_system).into(),
+        muzzle_flash: RefCell::new(muzzle_flash).into(),
+        bullet_system: RefCell::new(bullet_system).into(),
         enemies: vec![],
-        burn_marks: BurnMarks::new(&mut context, 0),
+        burn_marks: BurnMarks::new(&mut context, unit_square_quad.clone()),
         sound_system: SoundSystem::new(),
         buffer_ready: false,
     };
@@ -261,6 +287,15 @@ fn game_run(context: &GpuContext, mut world: &mut World) {
         }
     };
 
+    let camera_uniform =  CameraUniform {
+        projection,
+        view: camera_view,
+        position: world.game_camera.position,
+        _padding: 0,
+    };
+
+    world.camera_handler.update_camera_buffer(context, camera_uniform);
+
     let projection_view = projection * camera_view;
 
     let mut dx: f32 = 0.0;
@@ -291,31 +326,36 @@ fn game_run(context: &GpuContext, mut world: &mut World) {
         }
     }
 
-    let aim_rot = Mat4::from_axis_angle(vec3(0.0, 1.0, 0.0), aim_theta);
+    let aim_rotation = Mat4::from_axis_angle(vec3(0.0, 1.0, 0.0), aim_theta);
 
     let mut player_transform = Mat4::from_translation(world.player.borrow().position);
     player_transform *= Mat4::from_scale(Vec3::splat(PLAYER_MODEL_SCALE));
-    player_transform *= aim_rot;
+    player_transform *= aim_rotation;
 
     let muzzle_transform = world.player.borrow().get_muzzle_position(&player_transform);
 
-    /*
     if world.player.borrow().is_alive && world.player.borrow().is_trying_to_fire && (world.player.borrow().last_fire_time + FIRE_INTERVAL) < world.frame_time {
         world.player.borrow_mut().last_fire_time = world.frame_time;
-        if bullet_store.create_bullets(dx, dz, &muzzle_transform, SPREAD_AMOUNT) {
-            muzzle_flash.add_flash();
+        if world.bullet_system.borrow_mut().create_bullets(dx, dz, &muzzle_transform, SPREAD_AMOUNT) {
+            world.muzzle_flash.borrow_mut().add_flash();
             world.sound_system.play_player_shooting();
         }
     }
 
-    muzzle_flash.update(world.delta_time);
-    bullet_store.update_bullets(&mut world);
+    world.player_transform = player_transform;
+
+    world.muzzle_flash.borrow_mut().update(world.delta_time);
+    // world.bullet_system.borrow_mut().update_bullets(&mut world);
+
+    let bullet_system = world.bullet_system.clone();
+    let enemy_system = world.enemy_system.clone();
+
+    bullet_system.borrow_mut().update_bullets(&mut world);
 
     if world.player.borrow().is_alive {
-        enemies.update(&mut world);
-        enemies.chase_player(&mut world);
+        enemy_system.borrow_mut().update(&mut world);
+        enemy_system.borrow_mut().chase_player(&mut world);
     }
-     */
 
     // Update world.player
     world.player.borrow_mut().update(&world, aim_theta);
@@ -323,9 +363,8 @@ fn game_run(context: &GpuContext, mut world: &mut World) {
     let mut use_point_light = false;
     let mut muzzle_world_position = Vec3::default();
 
-    /*
-    if !muzzle_flash.muzzle_flash_sprites_age.is_empty() {
-        let min_age = muzzle_flash.get_min_age();
+    if !world.muzzle_flash.borrow().muzzle_flash_sprites_age.is_empty() {
+        let min_age = world.muzzle_flash.borrow().get_min_age();
         let muzzle_world_position_vec4 = muzzle_transform * vec4(0.0, 0.0, 0.0, 1.0);
 
         muzzle_world_position = vec3(
@@ -336,26 +375,29 @@ fn game_run(context: &GpuContext, mut world: &mut World) {
 
         use_point_light = min_age < 0.03;
     }
-     */
 
     let near_plane: f32 = 1.0;
     let far_plane: f32 = 50.0;
     let ortho_size: f32 = 10.0;
     let player_position = world.player.borrow().position;
 
-    let player_light_dir = world.game_lighting_handler.uniform.direction_light.direction;
+    let player_light_dir = world.player_lighting_handler.uniform.direction_light.direction;
 
     let light_projection = Mat4::orthographic_rh_gl(-ortho_size, ortho_size, -ortho_size, ortho_size, near_plane, far_plane);
     let light_view = Mat4::look_at_rh(player_position - 20.0 * player_light_dir, player_position, vec3(0.0, 1.0, 0.0));
     let light_space_matrix = light_projection * light_view;
 
-    world.game_lighting_handler.uniform.light_space_matrix = light_space_matrix;
-    world.game_lighting_handler.uniform.use_point_light = if use_point_light { 1 } else { 0 };
+    world.player_lighting_handler.uniform.aim_rotation = aim_rotation;
+    world.player_lighting_handler.uniform.view_position = world.game_camera.position;
+    world.player_lighting_handler.uniform.light_space_matrix = light_space_matrix;
+    world.player_lighting_handler.uniform.use_point_light = if use_point_light { 1 } else { 0 };
 
     world.player.borrow().model.borrow().update_animation(world.delta_time - 0.004);
     world.player.borrow_mut().update(&world, 1.0);
 
-    world.player_render.borrow_mut().render(&context, &world);
+    // world.floor.borrow().draw(&context, &projection_view);
+
+    world.scene_render.borrow_mut().render(&context, &world);
 
     // world.buffer_ready = true;
 }

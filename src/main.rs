@@ -17,6 +17,7 @@ mod player;
 mod quads;
 mod render;
 mod lighting;
+mod small_mesh;
 
 use std::sync::Arc;
 use winit::event_loop::EventLoop;

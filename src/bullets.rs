@@ -7,10 +7,10 @@ use std::f32::consts::PI;
 use spark_gap::{SIZE_OF_QUAT, SIZE_OF_VEC3};
 use spark_gap::gpu_context::GpuContext;
 use spark_gap::material::Material;
-use spark_gap::texture::Texture;
 use spark_gap::texture_config::{TextureConfig, TextureFilter, TextureType, TextureWrap};
 use crate::capsule::Capsule;
 use crate::enemy::{Enemy, ENEMY_COLLIDER};
+use crate::small_mesh::SmallMesh;
 use crate::world::World;
 
 pub struct BulletGroup {
@@ -30,7 +30,7 @@ impl BulletGroup {
 }
 
 
-pub struct BulletStore {
+pub struct BulletSystem {
     all_bullet_positions: Vec<Vec3>,
     all_bullet_rotations: Vec<Quat>,
     all_bullet_directions: Vec<Vec3>,
@@ -42,7 +42,7 @@ pub struct BulletStore {
     bullet_material: Material,
     bullet_impact_spritesheet: SpriteSheet,
     bullet_impact_sprites: Vec<SpriteSheetSprite>,
-    unit_square_vao: i32,
+    unit_square: SmallMesh,
 }
 
 // const BULLET_SCALE: f32 = 0.3;
@@ -112,8 +112,8 @@ const BULLET_INDICES_H_V: [i32; 12] = [
     4, 6, 7,
 ];
 
-impl BulletStore {
-    pub fn new(context: &mut GpuContext, unit_square_vao: i32) -> Self {
+impl BulletSystem {
+    pub fn new(context: &mut GpuContext, unit_square: SmallMesh) -> Self {
         // initialize_buffer_and_create
         // let mut bullet_vao: GLuint = 0;
         // let mut bullet_vertices_vbo: GLuint = 0;
@@ -209,11 +209,15 @@ impl BulletStore {
             bullet_material,
             bullet_impact_spritesheet,
             bullet_impact_sprites: vec![],
-            unit_square_vao,
+            unit_square,
         }
     }
 
-    pub fn create_bullets(&mut self, dx: f32, dz: f32, muzzle_transform: &Mat4, spread_amount: i32) {
+    pub fn create_bullets(&mut self, dx: f32, dz: f32, muzzle_transform: &Mat4, spread_amount: i32) -> bool {
+        // limit number of bullet groups
+        if self.bullet_groups.len() > 9 {
+            return false;
+        }
         // let spreadAmount = 100;
 
         let muzzle_world_position = *muzzle_transform * vec4(0.0, 0.0, 0.0, 1.0);
@@ -276,6 +280,8 @@ impl BulletStore {
         }
 
         self.bullet_groups.push(bullet_group);
+
+        true
     }
 
     pub fn update_bullets(&mut self, world: &mut World) {

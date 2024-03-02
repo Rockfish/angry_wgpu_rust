@@ -4,6 +4,7 @@ use naga_oil::compose::{ComposableModuleDefinition, ComposableModuleDescriptor, 
 
 pub mod main_render;
 mod player_render;
+mod floor_render;
 
 fn try_every_shader_file(
     composer: &mut Composer,
