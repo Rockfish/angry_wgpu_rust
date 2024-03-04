@@ -45,8 +45,8 @@ struct VertexOutput {
     @location(2) fragement_light_space_position: vec4<f32>,
 };
 
-@vertex
-fn vs_main(input: VertexInput) -> VertexOutput {
+// from basic_texture_shader.vert
+@vertex fn vs_main(input: VertexInput) -> VertexOutput {
 
     var result: VertexOutput;
 
@@ -62,8 +62,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 }
 
 
-@fragment
-fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+@fragment fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     var diffuse_color = textureSample(diffuse_texture, diffuse_sampler, in.tex_coords);
     var color = diffuse_color;
@@ -72,7 +71,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
 // todo: fix
 //        var texelSize = 1.0 / textureDimensions(shadow_map, 0);
-//        var texelSize = 1.0 / vec2<f32>(800, 800);
 
         var lightDir = normalize(-floor_lighting.direction_light.direction);
         var normal = textureSample(normal_texture, normal_sampler, in.tex_coords).xyz;
@@ -112,9 +110,9 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
           var linear_val = 0.5;
           var constant = 0.0;
           var quadratic = 3.0;
-//          var attenuation = 1.0 / (constant + linear_val * distance + quadratic * (distance * distance));
+          var attenuation = 1.0 / (constant + linear_val * distance + quadratic * (distance * distance));
           var diffuse  = floor_lighting.point_light.color  * diff * diffuse_color.xyz;
-//          diffuse *= attenuation;
+          diffuse *= attenuation;
           // needs to have the opposite effect for good flash shadows
           // color += vec4(diffuse.xyz, 1.0) * (1.0 - shadow * diff); // doesn't work
           color += vec4<f32>(diffuse.xyz, 1.0);
@@ -123,3 +121,19 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     return color;
 }
+
+// todo: add shadow_map and sampler
+//fn shadow_calculation(bias: f32, fragement_light_space_position: vec4<f32>, offset: vec2<f32>) -> f32 {
+//  var projCoords = fragement_light_space_position.xyz / fragement_light_space_position.w;
+//  projCoords = projCoords * 0.5 + 0.5;
+//  var closestDepth = textureSample(shadow_map, shadow_map_sampler, projCoords.xy + offset).r;
+//  var currentDepth = projCoords.z;
+//  bias = 0.001;
+//
+//  var shadow = 0.0;
+//  if ((currentDepth - bias) > closestDepth) {
+//    shadow = 1.0;
+//  }
+//
+//  return shadow;
+//}

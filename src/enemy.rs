@@ -27,9 +27,9 @@ const SPAWNS_PER_INTERVAL: i32 = 1;
 const SPAWN_RADIUS: f32 = 10.0; // from player
 
 pub struct EnemySystem {
-    count_down: f32,
-    monster_y: f32,
-    enemy_model: Model,
+    pub count_down: f32,
+    pub monster_y: f32,
+    pub enemy_model: Model,
 }
 
 impl EnemySystem {

@@ -98,5 +98,6 @@ impl World {
             self.delta_time = 0.0;
         }
         self.frame_time = current_time;
+        // println!("current_time: {:?}", current_time);
     }
 }

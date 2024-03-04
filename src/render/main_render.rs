@@ -1,8 +1,9 @@
-use glam::Mat4;
+use std::f32::consts::PI;
+use glam::{Mat4, vec3, Vec3};
 use crate::world::World;
 use spark_gap::gpu_context::GpuContext;
 use wgpu::{RenderPipeline, TextureView};
-use crate::floor;
+use crate::render::enemy_render::{create_enemy_shader_pipeline, render_enemy_model};
 use crate::render::floor_render::{create_floor_shader_pipeline, render_floor};
 use crate::render::player_render::{create_player_shader_pipeline, render_model};
 
@@ -16,6 +17,7 @@ pub const BACKGROUND_COLOR: wgpu::Color = wgpu::Color {
 pub struct AnimRenderPass {
     player_shader_pipeline: RenderPipeline,
     floor_shader_pipeline: RenderPipeline,
+    enemy_shader_pipeline: RenderPipeline,
     pub depth_texture_view: TextureView,
 }
 
@@ -23,12 +25,14 @@ impl AnimRenderPass {
     pub fn new(context: &GpuContext) -> Self {
         let player_shader_pipeline = create_player_shader_pipeline(context);
         let floor_shader_pipeline = create_floor_shader_pipeline(context);
+        let enemy_shader_pipeline = create_enemy_shader_pipeline(context);
 
         let depth_texture_view = create_depth_texture_view(&context);
 
         Self {
             player_shader_pipeline,
             floor_shader_pipeline,
+            enemy_shader_pipeline,
             depth_texture_view,
         }
     }
@@ -73,19 +77,33 @@ impl AnimRenderPass {
 
         let player = &world.player.borrow();
         let model = player.model.borrow();
+        let enemy_system = &world.enemy_system.borrow();
+        let enemy_model = &enemy_system.enemy_model;
+
+        world.player_lighting_handler.update_lighting(context);
 
         let floor = &world.floor.borrow();
 
         {
             let mut render_pass = encoder.begin_render_pass(&pass_description);
 
-
+            // floor
             render_pass.set_pipeline(&self.floor_shader_pipeline);
             render_pass = render_floor(context, world, render_pass, floor);
 
+            // player
+            // render_pass.set_pipeline(&self.player_shader_pipeline);
+            // render_pass = render_model(context, world, render_pass, &model, &world.player_transform);
 
-            render_pass.set_pipeline(&self.player_shader_pipeline);
-            let _render_pass = render_model(context, world, render_pass, &model, &world.player_transform);
+            // enemy
+            let mut model_transform = world.player_transform * Mat4::from_scale(vec3(8.0, 8.0, 8.0));
+            // model_transform *= Mat4::from_scale(Vec3::splat(0.01));
+            // model_transform *= Mat4::from_axis_angle(vec3(0.0, 1.0, 0.0), monster_theta);
+            model_transform *= Mat4::from_axis_angle(vec3(0.0, 0.0, 1.0), PI);
+            model_transform *= Mat4::from_axis_angle(vec3(1.0, 0.0, 0.0), 90.0f32.to_radians());
+
+            render_pass.set_pipeline(&self.enemy_shader_pipeline);
+            render_pass = render_enemy_model(context, world, render_pass, &enemy_model, &model_transform);
 
         }
 

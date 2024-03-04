@@ -33,16 +33,18 @@ struct GameLighting {
 @group(3) @binding(0) var diffuse_texture: texture_2d<f32>;
 @group(3) @binding(1) var diffuse_sampler: sampler;
 
-@group(4) @binding(0) var specular_texture: texture_2d<f32>;
-@group(4) @binding(1) var specular_sampler: sampler;
+//@group(4) @binding(0) var specular_texture: texture_2d<f32>;
+//@group(4) @binding(1) var specular_sampler: sampler;
 
-@group(5) @binding(0) var emissive_texture: texture_2d<f32>;
-@group(5) @binding(1) var emissive_sampler: sampler;
+//@group(5) @binding(0) var emissive_texture: texture_2d<f32>;
+//@group(5) @binding(1) var emissive_sampler: sampler;
 
 //@group(6) @binding(0) var shadow_map_texture: texture_2d<f32>;
 //@group(6) @binding(1) var shadow_map_sampler: sampler;
 
-
+const wiggleMagnitude: f32 = 3.0;
+const wiggleDistModifier: f32 = 0.12;
+const wiggleTimeModifier: f32 = 9.4;
 
 // Vertex shader section
 
@@ -54,26 +56,30 @@ struct VertexOutput {
     @location(3) light_space_position: vec4<f32>,
 };
 
-@vertex
-fn vs_main(model: VertexInput) -> VertexOutput {
-
+@vertex fn vs_main(in: VertexInput) -> VertexOutput {
     var result: VertexOutput;
 
-    var anim_output = get_animated_position(model, node_transform, bone_transforms);
+    var x_offset = sin(wiggleTimeModifier * game_lighting.time + wiggleDistModifier * distance(game_lighting.nose_position, in.position)) * wiggleMagnitude;
 
-    result.position = camera.projection * camera.view * model_transform * anim_output.position;
-    result.tex_coords = model.tex_coords;
+    if (game_lighting.depth_mode == 0) {
+        result.position = camera.projection * camera.view * model_transform
+                        * vec4<f32>(in.position.x + x_offset, in.position.y, in.position.z, 1.0);
+   } else {
+        result.position = game_lighting.light_space_matrix * model_transform
+                        * vec4<f32>(in.position.x + x_offset, in.position.y, in.position.z, 1.0);
+   }
 
-    result.normal = (game_lighting.aim_rotation * vec4<f32>(model.normal, 1.0)).xyz;
+    result.tex_coords = in.tex_coords;
 
-    result.world_position = (model_transform * vec4<f32>(model.position, 1.0)).xyz;
+    result.normal = (game_lighting.aim_rotation * vec4<f32>(in.normal, 1.0)).xyz;
+
+    result.world_position = (model_transform * vec4<f32>(in.position, 1.0)).xyz;
     result.light_space_position = game_lighting.light_space_matrix * vec4<f32>(result.world_position, 1.0);
 
     return result;
 }
 
-
-// Fragment shader section
+// fragment
 
 @fragment fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     var color = textureSample(diffuse_texture, diffuse_sampler, in.tex_coords);
@@ -114,31 +120,15 @@ fn vs_main(model: VertexInput) -> VertexOutput {
 
           var spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
 
-          color += str * spec * textureSample(specular_texture, specular_sampler, in.tex_coords) * vec4<f32>(game_lighting.direction_light.color, 1.0);
+//          color += str * spec * textureSample(specular_texture, specular_sampler, in.tex_coords) * vec4<f32>(game_lighting.direction_light.color, 1.0);
           color += spec * 0.1 * vec4<f32>(1.0, 1.0, 1.0, 1.0);
         }
 
-        if (game_lighting.use_emissive != 0) {
-          var emission = textureSample(emissive_texture, emissive_sampler, in.tex_coords);//.rgb;
-          color += emission;
-        }
+//        if (game_lighting.use_emissive != 0) {
+//          var emission = textureSample(emissive_texture, emissive_sampler, in.tex_coords);//.rgb;
+//          color += emission;
+//        }
       }
 
     return color;
 }
-
-//fn ShadowCalculation(bias: f32, fragPosLightSpace: vec4<f32>) -> f32 {
-//
-//  var projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-//  projCoords = projCoords * 0.5 + 0.5;
-//
-//  var closestDepth = textureSample(shadow_map_texture, shadow_map_sampler, projCoords.xy).r;
-//  var currentDepth = projCoords.z;
-//
-//  var shadow = 0.0;
-//  if (currentDepth - bias) > closestDepth {
-//    shadow = 1.0;
-//  };
-//
-//  return shadow;
-//}

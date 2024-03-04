@@ -82,3 +82,19 @@ fn get_animated_position(
 
     return output;
 }
+
+//fn shadow_calculation(bias: f32, fragPosLightSpace: vec4<f32>) -> f32 {
+//
+//  var projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+//  projCoords = projCoords * 0.5 + 0.5;
+//
+//  var closestDepth = textureSample(shadow_map_texture, shadow_map_sampler, projCoords.xy).r;
+//  var currentDepth = projCoords.z;
+//
+//  var shadow = 0.0;
+//  if (currentDepth - bias) > closestDepth {
+//    shadow = 1.0;
+//  };
+//
+//  return shadow;
+//}

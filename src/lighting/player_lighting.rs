@@ -16,11 +16,13 @@ pub struct PlayerLightingUniform {
     pub light_space_matrix: Mat4,
     pub view_position: Vec3,
     pub ambient_color: Vec3,
+    pub nose_position: Vec3,
+    pub time: f32,
     pub depth_mode: i32,
     pub use_point_light: i32,
     pub use_light: i32,
     pub use_emissive: i32,
-    pub(crate) _pad: [f32; 6],
+    pub(crate) _pad: [i32; 6],
 }
 
 // impl PlayerLightingUniform {
@@ -82,6 +84,7 @@ impl PlayerLightingHandler {
     }
 
     pub fn update_lighting(&self, context: &GpuContext) {
+        // println!("uniform: {:#?}", &self.uniform);
         context
             .queue
             .write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[self.uniform]));

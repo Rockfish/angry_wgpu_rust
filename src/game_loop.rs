@@ -140,11 +140,13 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
         light_space_matrix: Mat4::IDENTITY,
         view_position: view_position.clone(),
         ambient_color,
+        nose_position: Vec3::ZERO,
+        time: 0.0,
         depth_mode: 0,
         use_point_light: 1,
         use_light: 1,
         use_emissive: 1,
-        _pad: [0.0; 6],
+        _pad: [0; 6],
     };
     
     let floor_lighting_uniform = FloorLightingUniform {
@@ -234,7 +236,6 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
                             game_run(&context, &mut world);
 
                             context.window.request_redraw();
-
                         }
                         WindowEvent::KeyboardInput { event, .. } => {
                             // if event.state == ElementState::Pressed {
@@ -393,6 +394,10 @@ fn game_run(context: &GpuContext, mut world: &mut World) {
     world.player_lighting_handler.uniform.view_position = world.game_camera.position;
     world.player_lighting_handler.uniform.light_space_matrix = light_space_matrix;
     world.player_lighting_handler.uniform.use_point_light = if use_point_light { 1 } else { 0 };
+
+    world.player_lighting_handler.uniform.time = world.frame_time;
+
+    // world.player_lighting_handler.update_lighting(context);
 
     world.player.borrow().model.borrow().update_animation(world.delta_time - 0.004);
     world.player.borrow_mut().update(&world, 1.0);

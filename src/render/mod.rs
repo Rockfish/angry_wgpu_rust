@@ -3,8 +3,9 @@ use std::io::Read;
 use naga_oil::compose::{ComposableModuleDefinition, ComposableModuleDescriptor, Composer, ComposerError, NagaModuleDescriptor};
 
 pub mod main_render;
-mod player_render;
-mod floor_render;
+pub mod player_render;
+pub mod floor_render;
+pub mod enemy_render;
 
 fn try_every_shader_file(
     composer: &mut Composer,
