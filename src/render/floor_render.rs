@@ -1,20 +1,18 @@
-use glam::Mat4;
 use spark_gap::camera::camera_handler::CAMERA_BIND_GROUP_LAYOUT;
 use spark_gap::gpu_context::GpuContext;
 use spark_gap::material::MATERIAL_BIND_GROUP_LAYOUT;
-use spark_gap::model_builder::MODEL_BIND_GROUP_LAYOUT;
-use spark_gap::model_mesh::ModelVertex;
 use wgpu::{RenderPass, RenderPipeline};
 use crate::floor::Floor;
 use crate::lighting::floor_lighting::FLOOR_LIGHTING_BIND_GROUP_LAYOUT;
 use crate::load_shader;
+use crate::small_mesh::{SMALL_MESH_BIND_GROUP_LAYOUT, SmallMesh};
 use crate::world::World;
 
 pub fn create_floor_shader_pipeline(context: &GpuContext) -> RenderPipeline {
     let camera_bind_group_layout = context.bind_layout_cache.get(CAMERA_BIND_GROUP_LAYOUT).unwrap();
-    let model_bind_group_layout = context.bind_layout_cache.get(MODEL_BIND_GROUP_LAYOUT).unwrap();
-    let material_bind_group_layout = context.bind_layout_cache.get(MATERIAL_BIND_GROUP_LAYOUT).unwrap();
+    let model_bind_group_layout = context.bind_layout_cache.get(SMALL_MESH_BIND_GROUP_LAYOUT).unwrap();
     let lighting_bind_group_layout = context.bind_layout_cache.get(FLOOR_LIGHTING_BIND_GROUP_LAYOUT).unwrap();
+    let material_bind_group_layout = context.bind_layout_cache.get(MATERIAL_BIND_GROUP_LAYOUT).unwrap();
 
     let pipeline_layout = context.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("Render Pipeline Layout"),
@@ -40,7 +38,7 @@ pub fn create_floor_shader_pipeline(context: &GpuContext) -> RenderPipeline {
         vertex: wgpu::VertexState {
             module: &shader,
             entry_point: "vs_main",
-            buffers: &[ModelVertex::vertex_description()],
+            buffers: &[SmallMesh::vertex_description()],
         },
         fragment: Some(wgpu::FragmentState {
             module: &shader,

@@ -59,9 +59,10 @@ impl Floor {
 
         let transform = Mat4::IDENTITY;
 
-        let layout = get_or_create_bind_group_layout(context, SMALL_MESH_BIND_GROUP_LAYOUT, create_small_mesh_bind_group_layout);
         let transform_buffer = create_transform_buffer(context, "floor transform", &transform);
-        let bind_group = create_small_mesh_bind_group(context, layout, &transform_buffer);
+
+        let layout = get_or_create_bind_group_layout(context, SMALL_MESH_BIND_GROUP_LAYOUT, create_small_mesh_bind_group_layout);
+        let bind_group = create_small_mesh_bind_group(context, &layout, &transform_buffer);
 
         Self {
             floor_mesh,

@@ -60,7 +60,7 @@ impl PlayerLightingHandler {
 
         if !context.bind_layout_cache.contains_key(PLAYER_LIGHTING_BIND_GROUP_LAYOUT) {
             let layout = create_player_lighting_bind_group_layout(context);
-            context.bind_layout_cache.insert(String::from(PLAYER_LIGHTING_BIND_GROUP_LAYOUT), layout);
+            context.bind_layout_cache.insert(String::from(PLAYER_LIGHTING_BIND_GROUP_LAYOUT), layout.into());
         }
 
         let bind_group_layout = context.bind_layout_cache.get(PLAYER_LIGHTING_BIND_GROUP_LAYOUT).unwrap();

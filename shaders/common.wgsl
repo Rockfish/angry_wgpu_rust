@@ -22,7 +22,7 @@ struct DirectionLight {
 }
 
 struct PointLight {
-    world_pos: vec3<f32>,
+    world_position: vec3<f32>,
     color: vec3<f32>,
 }
 

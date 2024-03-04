@@ -43,13 +43,13 @@ impl SmallMesh {
     }
 }
 
-pub fn get_or_create_bind_group_layout<'a>(context: &'a mut GpuContext, layout_name: &'a str, create_func: fn(&GpuContext) -> BindGroupLayout) -> &'a BindGroupLayout {
+pub fn get_or_create_bind_group_layout(context: &mut GpuContext, layout_name: &str, create_func: fn(&GpuContext) -> BindGroupLayout) -> Rc<BindGroupLayout> {
     if !context.bind_layout_cache.contains_key(layout_name) {
         let layout = create_func(context);
-        context.bind_layout_cache.insert(String::from(layout_name), layout);
+        context.bind_layout_cache.insert(String::from(layout_name), layout.into());
     }
 
-    context.bind_layout_cache.get(layout_name).unwrap()
+    context.bind_layout_cache.get(layout_name).unwrap().clone()
 }
 
 pub fn create_small_mesh_bind_group_layout(context: &GpuContext) -> BindGroupLayout {

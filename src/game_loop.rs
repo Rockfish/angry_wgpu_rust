@@ -152,9 +152,11 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
         point_light,
         ambient_color,
         view_position,
+        light_space_matrix: Mat4::IDENTITY,
         use_lighting: 0,
         use_specular: 0,
         use_point_light: 0,
+        _pad: [0.0; 7],
     };
 
     let player_lighting_handler = PlayerLightingHandler::new(&mut context, player_lighting_uniform);

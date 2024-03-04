@@ -101,7 +101,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         }
 
         if (game_lighting.use_point_light != 0) {
-          var lightDir = normalize(game_lighting.point_light.world_pos - in.world_position);
+          var lightDir = normalize(game_lighting.point_light.world_position - in.world_position);
           var diff = max(dot(normal, lightDir), 0.0);
           var diffuse  = 0.7 * game_lighting.point_light.color  * diff * (textureSample(diffuse_texture, diffuse_sampler, in.tex_coords)).xyz;
           color += vec4<f32>(diffuse.xyz, 1.0);

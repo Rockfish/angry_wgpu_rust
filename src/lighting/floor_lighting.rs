@@ -1,4 +1,4 @@
-use glam::Vec3;
+use glam::{Mat4, Vec3};
 use spark_gap::gpu_context::GpuContext;
 use wgpu::{BindGroup, BindGroupLayout, Buffer};
 use wgpu::util::DeviceExt;
@@ -11,12 +11,13 @@ pub const FLOOR_LIGHTING_BIND_GROUP_LAYOUT: &str = "floor_lighting_bind_group_la
 pub struct FloorLightingUniform {
     pub direction_light: DirectionLight,
     pub point_light: PointLight,
+    pub light_space_matrix: Mat4,
     pub ambient_color: Vec3,
     pub view_position: Vec3,
     pub use_lighting: i32,
     pub use_specular: i32,
     pub use_point_light: i32,
-    // pub(crate) _pad: [f32; 6],
+    pub(crate) _pad: [f32; 7],
 }
 
 pub struct FloorLightingHandler {
@@ -38,7 +39,7 @@ impl FloorLightingHandler {
 
         if !context.bind_layout_cache.contains_key(FLOOR_LIGHTING_BIND_GROUP_LAYOUT) {
             let layout = create_floor_lighting_bind_group_layout(context);
-            context.bind_layout_cache.insert(String::from(FLOOR_LIGHTING_BIND_GROUP_LAYOUT), layout);
+            context.bind_layout_cache.insert(String::from(FLOOR_LIGHTING_BIND_GROUP_LAYOUT), layout.into());
         }
 
         let bind_group_layout = context.bind_layout_cache.get(FLOOR_LIGHTING_BIND_GROUP_LAYOUT).unwrap();
