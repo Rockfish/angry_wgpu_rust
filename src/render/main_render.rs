@@ -37,6 +37,10 @@ impl AnimRenderPass {
         }
     }
 
+    pub fn resize(&mut self, context: &GpuContext) {
+        self.depth_texture_view = create_depth_texture_view(context);
+    }
+
     pub fn render(&mut self, context: &GpuContext, world: &World) {
         let frame = context
             .surface
@@ -80,7 +84,7 @@ impl AnimRenderPass {
         let enemy_system = &world.enemy_system.borrow();
         let enemy_model = &enemy_system.enemy_model;
 
-        world.player_lighting_handler.update_lighting(context);
+        world.shader_params.update_buffer(context);
 
         let floor = &world.floor.borrow();
 
@@ -92,8 +96,8 @@ impl AnimRenderPass {
             render_pass = render_floor(context, world, render_pass, floor);
 
             // player
-            // render_pass.set_pipeline(&self.player_shader_pipeline);
-            // render_pass = render_model(context, world, render_pass, &model, &world.player_transform);
+            render_pass.set_pipeline(&self.player_shader_pipeline);
+            render_pass = render_model(context, world, render_pass, &model, &world.player_transform);
 
             // enemy
             let mut model_transform = world.player_transform * Mat4::from_scale(vec3(8.0, 8.0, 8.0));
@@ -104,7 +108,6 @@ impl AnimRenderPass {
 
             render_pass.set_pipeline(&self.enemy_shader_pipeline);
             render_pass = render_enemy_model(context, world, render_pass, &enemy_model, &model_transform);
-
         }
 
         context.queue.submit(Some(encoder.finish()));

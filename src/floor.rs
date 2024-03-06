@@ -44,7 +44,7 @@ impl Floor {
 
         let material_diffuse = Material::new(context, "assets/Models/Floor D.png", &texture_config).unwrap();
         let material_normal = Material::new(context, "assets/Models/Floor N.png", &texture_config).unwrap();
-        let material_spectral = Material::new(context, "assets/Models/Floor M.png", &texture_config).unwrap();
+        let material_specular = Material::new(context, "assets/Models/Floor M.png", &texture_config).unwrap();
 
         let vertex_buffer = context.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Vertex Buffer"),
@@ -57,9 +57,9 @@ impl Floor {
             num_elements: 6,
         };
 
-        let transform = Mat4::IDENTITY;
+        let model_transform = Mat4::IDENTITY;
 
-        let transform_buffer = create_transform_buffer(context, "floor transform", &transform);
+        let transform_buffer = create_transform_buffer(context, "floor transform", &model_transform);
 
         let layout = get_or_create_bind_group_layout(context, SMALL_MESH_BIND_GROUP_LAYOUT, create_small_mesh_bind_group_layout);
         let bind_group = create_small_mesh_bind_group(context, &layout, &transform_buffer);
@@ -68,8 +68,8 @@ impl Floor {
             floor_mesh,
             material_diffuse,
             material_normal,
-            material_specular: material_spectral,
-            model_transform: transform,
+            material_specular,
+            model_transform,
             transform_buffer,
             bind_group,
         }

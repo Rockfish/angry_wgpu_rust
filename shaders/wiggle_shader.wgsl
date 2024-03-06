@@ -1,21 +1,7 @@
 #define_import_path spark::player_shader
-#import spark::common::{VertexInput, CameraUniform, DirectionLight, PointLight};
+#import spark::common::{VertexInput, CameraUniform, DirectionLight, PointLight, ShaderParameters};
 #import spark::common::{MAX_BONES, MAX_BONE_INFLUENCE, get_animated_position, AnimationOutput};
 
-struct GameLighting {
-    direction_light: DirectionLight,
-    point_light: PointLight,
-    aim_rotation: mat4x4<f32>,
-    light_space_matrix: mat4x4<f32>,
-    view_position: vec3<f32>,
-    ambient_color: vec3<f32>,
-    nose_position: vec3<f32>,
-    time: f32,
-    depth_mode: i32,
-    use_point_light: i32,
-    use_light: i32,
-    use_emissive: i32,
-}
 
 // camera
 @group(0) @binding(0) var<uniform> camera: CameraUniform;
@@ -24,10 +10,9 @@ struct GameLighting {
 @group(1) @binding(0) var<uniform> model_transform: mat4x4<f32>;
 @group(1) @binding(1) var<uniform> node_transform: mat4x4<f32>;
 @group(1) @binding(2) var<uniform> bone_transforms: array<mat4x4<f32>, MAX_BONES>;
-//@group(1) @binding(0) var<uniform> model_transforms: ModelTransforms;
 
 // game and lighting
-@group(2) @binding(0) var<uniform> game_lighting: GameLighting;
+@group(2) @binding(0) var<uniform> params: ShaderParameters;
 
 // material information
 @group(3) @binding(0) var diffuse_texture: texture_2d<f32>;
@@ -57,24 +42,27 @@ struct VertexOutput {
 };
 
 @vertex fn vs_main(in: VertexInput) -> VertexOutput {
+
     var result: VertexOutput;
 
-    var x_offset = sin(wiggleTimeModifier * game_lighting.time + wiggleDistModifier * distance(game_lighting.nose_position, in.position)) * wiggleMagnitude;
+    var time = params.time;
 
-    if (game_lighting.depth_mode == 0) {
+    var x_offset = sin(wiggleTimeModifier * time + wiggleDistModifier * distance(params.nose_position.xyz, in.position)) * wiggleMagnitude;
+
+    if (params.depth_mode == 0) {
         result.position = camera.projection * camera.view * model_transform
                         * vec4<f32>(in.position.x + x_offset, in.position.y, in.position.z, 1.0);
    } else {
-        result.position = game_lighting.light_space_matrix * model_transform
+        result.position = params.light_space_matrix * model_transform
                         * vec4<f32>(in.position.x + x_offset, in.position.y, in.position.z, 1.0);
    }
 
     result.tex_coords = in.tex_coords;
 
-    result.normal = (game_lighting.aim_rotation * vec4<f32>(in.normal, 1.0)).xyz;
+    result.normal = (params.aim_rotation * vec4<f32>(in.normal, 1.0)).xyz;
 
     result.world_position = (model_transform * vec4<f32>(in.position, 1.0)).xyz;
-    result.light_space_position = game_lighting.light_space_matrix * vec4<f32>(result.world_position, 1.0);
+    result.light_space_position = params.light_space_matrix * vec4<f32>(result.world_position, 1.0);
 
     return result;
 }
@@ -82,9 +70,15 @@ struct VertexOutput {
 // fragment
 
 @fragment fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+
+    var use_light = params.use_light;
+    var use_point_light = params.use_point_light;
+    var use_emissive = params.use_emissive;
+    var depth_mode = params.depth_mode;
+
     var color = textureSample(diffuse_texture, diffuse_sampler, in.tex_coords);
 
-      if (game_lighting.use_light != 0) {
+      if (use_light != 0) {
 
         var normal = normalize(in.normal);
 
@@ -92,39 +86,39 @@ struct VertexOutput {
 
         { // direction light
 
-          var lightDir = normalize(-game_lighting.direction_light.direction);
+          var lightDir = normalize(-params.direction_light.direction.xyz);
 
           // TODO use normal texture as well
           var diff: f32 = max(dot(normal, lightDir), 0.0);
-          var amb = game_lighting.ambient_color * textureSample(diffuse_texture, diffuse_sampler, in.tex_coords).xyz;
+          var amb = params.ambient_color.xyz * textureSample(diffuse_texture, diffuse_sampler, in.tex_coords).xyz;
           var bias: f32 = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
 
           bias = 0.001;
 //          shadow = ShadowCalculation(bias, in.light_space_position);
 
-          color = (1.0 - shadow) * vec4<f32>(game_lighting.direction_light.color, 1.0) * color * diff + vec4<f32>(amb, 1.0);
+          color = (1.0 - shadow) * params.direction_light.color * color * diff + vec4<f32>(amb, 1.0);
         }
 
-        if (game_lighting.use_point_light != 0) {
-          var lightDir = normalize(game_lighting.point_light.world_position - in.world_position);
+        if (use_point_light != 0) {
+          var lightDir = normalize(params.point_light.world_position.xyz - in.world_position);
           var diff = max(dot(normal, lightDir), 0.0);
-          var diffuse  = 0.7 * game_lighting.point_light.color  * diff * (textureSample(diffuse_texture, diffuse_sampler, in.tex_coords)).xyz;
+          var diffuse  = 0.7 * params.point_light.color.xyz  * diff * (textureSample(diffuse_texture, diffuse_sampler, in.tex_coords)).xyz;
           color += vec4<f32>(diffuse.xyz, 1.0);
         }
 
         if (shadow < 0.1) {  // Spec
-          var reflectDir = reflect(-game_lighting.direction_light.direction, normal);
-          var viewDir = normalize(game_lighting.view_position - in.world_position);
+          var reflectDir = reflect(-params.direction_light.direction.xyz, normal);
+          var viewDir = normalize(params.view_position.xyz - in.world_position);
           var shininess = 24.0;
           var str = 1.0;//0.88;
 
           var spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
 
-//          color += str * spec * textureSample(specular_texture, specular_sampler, in.tex_coords) * vec4<f32>(game_lighting.direction_light.color, 1.0);
+//          color += str * spec * textureSample(specular_texture, specular_sampler, in.tex_coords) * params.direction_light.color;
           color += spec * 0.1 * vec4<f32>(1.0, 1.0, 1.0, 1.0);
         }
 
-//        if (game_lighting.use_emissive != 0) {
+//        if (use_emissive != 0) {
 //          var emission = textureSample(emissive_texture, emissive_sampler, in.tex_coords);//.rgb;
 //          color += emission;
 //        }

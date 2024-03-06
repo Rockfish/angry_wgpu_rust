@@ -14,8 +14,8 @@ use crate::burn_marks::BurnMarks;
 use crate::enemy::{Enemy, EnemySystem};
 use crate::floor::Floor;
 use crate::game_loop::CameraType;
-use crate::lighting::floor_lighting::FloorLightingHandler;
-use crate::lighting::player_lighting::PlayerLightingHandler;
+// use crate::params::floor_lighting::FloorLightingHandler;
+use crate::params::shader_params::ShaderParametersHandler;
 use crate::muzzle_flash::MuzzleFlash;
 use crate::player::Player;
 use crate::render::main_render::AnimRenderPass;
@@ -77,9 +77,8 @@ pub struct World {
     pub player: RefCell<Player>,
     pub scene_render: RefCell<AnimRenderPass>,
     pub player_transform: Mat4,
-    pub player_lighting_handler: PlayerLightingHandler,
+    pub shader_params: ShaderParametersHandler,
     pub floor: RefCell<Floor>,
-    pub floor_lighting_handler: FloorLightingHandler,
     pub enemy_system: Rc<RefCell<EnemySystem>>,
     pub muzzle_flash: Rc<RefCell<MuzzleFlash>>,
     pub bullet_system: Rc<RefCell<BulletSystem>>,
@@ -87,6 +86,7 @@ pub struct World {
     pub burn_marks: BurnMarks,
     pub sound_system: SoundSystem,
     pub buffer_ready: bool,
+    pub light_direction: Vec3,
 }
 
 impl World {

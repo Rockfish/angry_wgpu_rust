@@ -16,7 +16,7 @@ mod muzzle_flash;
 mod player;
 mod quads;
 mod render;
-mod lighting;
+mod params;
 mod small_mesh;
 
 use std::sync::Arc;

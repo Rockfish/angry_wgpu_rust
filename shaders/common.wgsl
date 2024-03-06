@@ -17,13 +17,13 @@ struct CameraUniform {
 }
 
 struct DirectionLight {
-    direction: vec3<f32>,
-    color: vec3<f32>,
+    direction: vec4<f32>,
+    color: vec4<f32>,
 }
 
 struct PointLight {
-    world_position: vec3<f32>,
-    color: vec3<f32>,
+    world_position: vec4<f32>,
+    color: vec4<f32>,
 }
 
 const MAX_BONES = 100;
@@ -38,6 +38,22 @@ struct ModelTransforms {
 struct AnimationOutput {
     position: vec4<f32>,
     local_normal: vec3<f32>,
+}
+
+struct ShaderParameters {
+    direction_light: DirectionLight,
+    point_light: PointLight,
+    aim_rotation: mat4x4<f32>,
+    light_space_matrix: mat4x4<f32>,
+    view_position: vec4<f32>,
+    ambient_color: vec4<f32>,
+    nose_position: vec4<f32>,
+    time: f32,
+    depth_mode: i32,
+    use_light: i32,
+    use_point_light: i32,
+    use_emissive: i32,
+    use_specular: i32,
 }
 
 fn get_animated_position(

@@ -1,3 +1,3 @@
 pub mod common;
-pub mod player_lighting;
+pub mod shader_params;
 pub mod floor_lighting;

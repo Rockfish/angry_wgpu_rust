@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::f32::consts::PI;
 use std::rc::Rc;
 use crate::render::main_render::{create_depth_texture_view, AnimRenderPass};
-use crate::world::{FIRE_INTERVAL, FLOOR_LIGHT_FACTOR, FLOOR_NON_BLUE, LIGHT_FACTOR, NON_BLUE, PLAYER_MODEL_SCALE, SPREAD_AMOUNT, World};
+use crate::world::{FIRE_INTERVAL, FLOOR_LIGHT_FACTOR, FLOOR_NON_BLUE, LIGHT_FACTOR, MONSTER_Y, NON_BLUE, PLAYER_MODEL_SCALE, SPREAD_AMOUNT, World};
 use glam::{vec3, Mat4, Vec3, vec4};
 use spark_gap::camera::camera_handler::{CameraHandler, CameraUniform};
 use spark_gap::camera::fly_camera_controller::FlyCameraController;
@@ -23,9 +23,9 @@ use crate::bullets::BulletSystem;
 use crate::burn_marks::BurnMarks;
 use crate::enemy::EnemySystem;
 use crate::floor::Floor;
-use crate::lighting::common::{DirectionLight, PointLight};
-use crate::lighting::floor_lighting::{FloorLightingHandler, FloorLightingUniform};
-use crate::lighting::player_lighting::{PlayerLightingHandler, PlayerLightingUniform};
+use crate::params::common::{DirectionLight, PointLight};
+// use crate::params::floor_lighting::{FloorLightingHandler, FloorLightingUniform};
+use crate::params::shader_params::{ShaderParametersHandler, ShaderParametersUniform};
 use crate::muzzle_flash::MuzzleFlash;
 use crate::player::Player;
 use crate::quads::{create_more_obnoxious_quad, create_obnoxious_quad, create_unit_square};
@@ -121,48 +121,19 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
     let camera_controller = FlyCameraController::new(aspect_ratio, camera_position, 0.0, 0.0);
     let camera_handler = CameraHandler::new(&mut context, &camera_controller);
 
-    let direction_light = DirectionLight {
-        direction: player_light_dir,
-        color: light_color,
-    };
-
-    let point_light = PointLight {
-        world_pos: Default::default(),
-        color: Default::default(),
-    };
 
     let view_position = vec3(100.0, 100.0, 300.0);
 
-    let player_lighting_uniform = PlayerLightingUniform {
-        direction_light: direction_light.clone(),
-        point_light: point_light.clone(),
-        aim_rotation: Mat4::IDENTITY,
-        light_space_matrix: Mat4::IDENTITY,
-        view_position: view_position.clone(),
-        ambient_color,
-        nose_position: Vec3::ZERO,
-        time: 0.0,
-        depth_mode: 0,
-        use_point_light: 1,
-        use_light: 1,
-        use_emissive: 1,
-        _pad: [0; 6],
-    };
-    
-    let floor_lighting_uniform = FloorLightingUniform {
-        direction_light,
-        point_light,
-        ambient_color,
-        view_position,
-        light_space_matrix: Mat4::IDENTITY,
-        use_lighting: 0,
-        use_specular: 0,
-        use_point_light: 0,
-        _pad: [0.0; 7],
-    };
+    let mut shader_params = ShaderParametersHandler::new(&mut context);
 
-    let player_lighting_handler = PlayerLightingHandler::new(&mut context, player_lighting_uniform);
-    let floor_lighting_handler = FloorLightingHandler::new(&mut context, floor_lighting_uniform);
+    shader_params.set_direction_light_color(light_color);
+    shader_params.set_direction_light_direction(player_light_dir.clone());
+    shader_params.set_view_position(view_position.clone());
+    shader_params.set_ambient_color(ambient_color);
+    shader_params.set_use_light(true);
+    shader_params.set_use_point_light(true);
+    shader_params.set_use_emissive(true);
+
 
     // --- quads ---
 
@@ -205,12 +176,12 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
         game_projection,
         floating_projection,
         orthographic_projection,
+        light_direction: player_light_dir,
         player: player.into(),
         scene_render: scene_render.into(),
         player_transform: model_transform,
-        player_lighting_handler,
+        shader_params,
         floor: floor.into(),
-        floor_lighting_handler,
         enemy_system: RefCell::new(enemy_system).into(),
         muzzle_flash: RefCell::new(muzzle_flash).into(),
         bullet_system: RefCell::new(bullet_system).into(),
@@ -249,7 +220,7 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
                             context.resize(new_size);
                             world.camera_controller.resize(&context);
                             world.camera_handler.update_camera(&context, &world.camera_controller);
-                            // world.depth_texture_view = create_depth_texture_view(&context);
+                            world.scene_render.borrow_mut().resize(&context);
                             context.window.request_redraw();
                         }
                         WindowEvent::CloseRequested => target.exit(),
@@ -267,7 +238,8 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
 
 fn game_run(context: &GpuContext, mut world: &mut World) {
 
-    world.game_camera.position = world.player.borrow().position + world.camera_follow_vec;
+    world.game_camera.position = world.player.borrow().position + world.camera_follow_vec;// + vec3(world.game_params_handler.uniform.time, 0.0, 0.0);
+
     let game_view = Mat4::look_at_rh(world.game_camera.position, world.player.borrow().position, world.game_camera.up);
 
     let (projection, camera_view) = match world.active_camera {
@@ -296,6 +268,8 @@ fn game_run(context: &GpuContext, mut world: &mut World) {
         position: world.game_camera.position,
         _padding: 0,
     };
+
+    // println!("camera: {:?}", &camera_uniform);
 
     world.camera_handler.update_camera_buffer(context, camera_uniform);
 
@@ -384,22 +358,19 @@ fn game_run(context: &GpuContext, mut world: &mut World) {
     let ortho_size: f32 = 10.0;
     let player_position = world.player.borrow().position;
 
-    let player_light_dir = world.player_lighting_handler.uniform.direction_light.direction;
-
     let light_projection = Mat4::orthographic_rh_gl(-ortho_size, ortho_size, -ortho_size, ortho_size, near_plane, far_plane);
-    let light_view = Mat4::look_at_rh(player_position - 20.0 * player_light_dir, player_position, vec3(0.0, 1.0, 0.0));
+    let light_view = Mat4::look_at_rh(player_position - 20.0 * world.light_direction, player_position, vec3(0.0, 1.0, 0.0));
     let light_space_matrix = light_projection * light_view;
 
-    world.player_lighting_handler.uniform.aim_rotation = aim_rotation;
-    world.player_lighting_handler.uniform.view_position = world.game_camera.position;
-    world.player_lighting_handler.uniform.light_space_matrix = light_space_matrix;
-    world.player_lighting_handler.uniform.use_point_light = if use_point_light { 1 } else { 0 };
+    world.shader_params.set_aim_rotation(aim_rotation);
+    world.shader_params.set_view_position(world.game_camera.position.clone());
+    world.shader_params.set_light_space_matrix(light_space_matrix);
+    world.shader_params.set_use_point_light(use_point_light);
+    world.shader_params.set_time(world.frame_time);
+    world.shader_params.update_buffer(context);
 
-    world.player_lighting_handler.uniform.time = world.frame_time;
+    world.player.borrow().model.borrow().update_animation(world.delta_time);
 
-    // world.player_lighting_handler.update_lighting(context);
-
-    world.player.borrow().model.borrow().update_animation(world.delta_time - 0.004);
     world.player.borrow_mut().update(&world, 1.0);
 
     // world.floor.borrow().draw(&context, &projection_view);

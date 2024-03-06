@@ -1,10 +1,10 @@
-use glam::Vec3;
+use glam::Vec4;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct DirectionLight {
-    pub direction: Vec3,
-    pub color: Vec3,
+    pub direction: Vec4,
+    pub color: Vec4,
 }
 impl Default for DirectionLight {
     fn default() -> Self {
@@ -18,8 +18,8 @@ impl Default for DirectionLight {
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct PointLight {
-    pub world_pos: Vec3,
-    pub color: Vec3,
+    pub world_pos: Vec4,
+    pub color: Vec4,
 }
 
 impl Default for PointLight {

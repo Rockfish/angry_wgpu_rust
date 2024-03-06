@@ -3,15 +3,16 @@ use spark_gap::gpu_context::GpuContext;
 use spark_gap::material::MATERIAL_BIND_GROUP_LAYOUT;
 use wgpu::{RenderPass, RenderPipeline};
 use crate::floor::Floor;
-use crate::lighting::floor_lighting::FLOOR_LIGHTING_BIND_GROUP_LAYOUT;
+// use crate::params::floor_lighting::FLOOR_LIGHTING_BIND_GROUP_LAYOUT;
 use crate::load_shader;
+use crate::params::shader_params::SHADER_PARAMETERS_BIND_GROUP_LAYOUT;
 use crate::small_mesh::{SMALL_MESH_BIND_GROUP_LAYOUT, SmallMesh};
 use crate::world::World;
 
 pub fn create_floor_shader_pipeline(context: &GpuContext) -> RenderPipeline {
     let camera_bind_group_layout = context.bind_layout_cache.get(CAMERA_BIND_GROUP_LAYOUT).unwrap();
     let model_bind_group_layout = context.bind_layout_cache.get(SMALL_MESH_BIND_GROUP_LAYOUT).unwrap();
-    let lighting_bind_group_layout = context.bind_layout_cache.get(FLOOR_LIGHTING_BIND_GROUP_LAYOUT).unwrap();
+    let lighting_bind_group_layout = context.bind_layout_cache.get(SHADER_PARAMETERS_BIND_GROUP_LAYOUT).unwrap();
     let material_bind_group_layout = context.bind_layout_cache.get(MATERIAL_BIND_GROUP_LAYOUT).unwrap();
 
     let pipeline_layout = context.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -77,7 +78,7 @@ pub fn render_floor<'a>(
     // let model_transform = &world.model_transform;
     //model.update_model_buffers(context, model_transform);
 
-    world.floor_lighting_handler.update_lighting(context);
+    // world.floor_lighting_handler.update_lighting(context);
 
     // bind model_transform
     // bind projection_view
@@ -85,7 +86,7 @@ pub fn render_floor<'a>(
 
     render_pass.set_bind_group(0, &world.camera_handler.bind_group, &[]);
     render_pass.set_bind_group(1, &floor.bind_group, &[]);
-    render_pass.set_bind_group(2, &world.floor_lighting_handler.bind_group, &[]);
+    render_pass.set_bind_group(2, &world.shader_params.bind_group, &[]);
 
     render_pass.set_bind_group(3, floor.material_diffuse.bind_group.as_ref(), &[]);
     render_pass.set_bind_group(4, floor.material_specular.bind_group.as_ref(), &[]);
