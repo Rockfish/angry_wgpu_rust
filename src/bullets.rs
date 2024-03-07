@@ -388,7 +388,7 @@ impl BulletSystem {
             }
         }
 
-        world.enemies.retain(|e| e.is_alive);
+        // world.enemies.retain(|e| e.is_alive);
     }
 
     pub fn draw_bullets(&mut self, projection_view: &Mat4) {

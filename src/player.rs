@@ -7,9 +7,11 @@ use std::time::Duration;
 use spark_gap::animator::{AnimationClip, AnimationRepeat, WeightedAnimation};
 use spark_gap::gpu_context::GpuContext;
 use spark_gap::hash_map::HashMap;
+use spark_gap::input::Input;
 use spark_gap::model::Model;
 use spark_gap::model_builder::ModelBuilder;
 use spark_gap::texture_config::TextureType;
+use winit::keyboard::{Key, KeyCode};
 use crate::world::World;
 
 const PLAYER_SPEED: f32 = 5.0;
@@ -232,6 +234,25 @@ impl Player {
             WeightedAnimation::new(left_weight, 209.0, 229.0, 0.0, 0.0),
             WeightedAnimation::new(dead_weight, 234.0, 293.0, 0.0, self.death_time),
         ]
+    }
+
+    pub fn handle_input(&mut self, input: &Input, delta_time: f32) {
+        if self.is_alive {
+            let mut direction_vec = Vec3::splat(0.0);
+            for key in input.keys_held.iter() {
+                match key {
+                    KeyCode::KeyA => direction_vec += vec3(0.0, 0.0, -1.0),
+                    KeyCode::KeyD => direction_vec += vec3(0.0, 0.0, 1.0),
+                    KeyCode::KeyS => direction_vec += vec3(-1.0, 0.0, 0.0),
+                    KeyCode::KeyW => direction_vec += vec3(1.0, 0.0, 0.0),
+                    _ => {}
+                }
+            }
+            if direction_vec.length_squared() > 0.01 {
+                self.position += direction_vec.normalize() * self.speed * delta_time;
+            }
+            self.direction = vec2(direction_vec.x, direction_vec.z)
+        }
     }
 }
 

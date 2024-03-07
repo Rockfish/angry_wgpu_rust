@@ -1,25 +1,30 @@
 use crate::geom::distance_between_point_and_line_segment;
-use glam::{vec2, vec3, Mat4, Vec3};
+use glam::{vec2, vec3, Mat4, Vec3, Quat};
 use std::f32::consts::PI;
 use spark_gap::gpu_context::GpuContext;
 use spark_gap::model::Model;
 use spark_gap::model_builder::ModelBuilder;
 use spark_gap::utils::rand_float;
+use wgpu::Buffer;
+use wgpu::util::DeviceExt;
 use crate::capsule::Capsule;
 use crate::world::{MONSTER_SPEED, MONSTER_Y, PLAYER_COLLISION_RADIUS, World};
 
 pub const ENEMY_COLLIDER: Capsule = Capsule { height: 0.4, radius: 0.08 };
 
+#[repr(C)]
+#[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct EnemyUniform {
+    model_transform: Mat4,
+    aim_rotation: Mat4,
+}
+
 pub struct Enemy {
     pub position: Vec3,
     pub dir: Vec3,
     pub is_alive: bool,
-}
-
-impl Enemy {
-    pub const fn new(position: Vec3, dir: Vec3) -> Self {
-        Self { position, dir, is_alive: true }
-    }
+    pub uniform: EnemyUniform,
+    pub buffer: Option<Buffer>
 }
 
 const ENEMY_SPAWN_INTERVAL: f32 = 1.0; // seconds
@@ -30,6 +35,7 @@ pub struct EnemySystem {
     pub count_down: f32,
     pub monster_y: f32,
     pub enemy_model: Model,
+    pub free_buffers: Vec<Buffer>,
 }
 
 impl EnemySystem {
@@ -39,26 +45,53 @@ impl EnemySystem {
             count_down: ENEMY_SPAWN_INTERVAL,
             monster_y: MONSTER_Y,
             enemy_model,
+            free_buffers: vec![],
         }
     }
 
-    pub fn update(&mut self, world: &mut World) {
+    pub fn update(&mut self, context: &mut GpuContext, world: &mut World) {
+        for enemy in world.enemies.iter_mut() {
+            if !enemy.is_alive {
+                let buffer = enemy.buffer.take();
+                self.free_buffers.push(buffer.unwrap());
+            }
+        }
+
+        world.enemies.retain(|e| e.is_alive);
+
         self.count_down -= world.delta_time;
         if self.count_down <= 0.0 {
             for _i in 0..SPAWNS_PER_INTERVAL {
-                self.spawn_enemy(world)
+                self.spawn_enemy(context, world)
             }
             self.count_down += ENEMY_SPAWN_INTERVAL;
         }
     }
 
-    pub fn spawn_enemy(&mut self, world: &mut World) {
+    pub fn spawn_enemy(&mut self, context: &mut GpuContext, world: &mut World) {
         let theta = (rand_float() * 360.0).to_radians();
         // let x = state.player.borrow().position.x + theta.sin() * SPAWN_RADIUS;
         // let z = state.player.borrow().position.z + theta.cos() * SPAWN_RADIUS;
         let x = theta.sin().mul_add(SPAWN_RADIUS, world.player.borrow().position.x);
         let z = theta.cos().mul_add(SPAWN_RADIUS, world.player.borrow().position.z);
-        world.enemies.push(Enemy::new(vec3(x, self.monster_y, z), vec3(0.0, 0.0, 1.0)));
+
+        let uniform = EnemyUniform {
+            model_transform: Mat4::IDENTITY,
+            aim_rotation: Mat4::IDENTITY,
+        };
+
+        let buffer = self.free_buffers.pop()
+            .unwrap_or(Self::create_buffer(context, &[uniform]));
+
+        let enemy = Enemy {
+            position: vec3(x, self.monster_y, z),
+            dir: vec3(0.0, 0.0, 1.0),
+            is_alive: false,
+            uniform,
+            buffer: buffer.into(),
+        };
+
+        world.enemies.push(enemy);
     }
 
     pub fn chase_player(&self, world: &mut World) {
@@ -86,12 +119,20 @@ impl EnemySystem {
         }
     }
 
+    pub fn create_buffer(context: &GpuContext, uniform: &[EnemyUniform; 1]) -> Buffer {
+        context.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Vertex Buffer"),
+            contents: bytemuck::cast_slice(uniform),
+            usage: wgpu::BufferUsages::VERTEX,
+        })
+    }
+
     pub fn draw_enemies(&self, world: &mut World) {
         // shader.use_shader();
         // shader.set_vec3("nosePos", &vec3(1.0, MONSTER_Y, -2.0));
         // shader.set_float("time", world.frame_time);
 
-        // TODO optimise (multithreaded, instancing, SOA, etc..)
+        // TODO optimise with instancing
         for e in world.enemies.iter_mut() {
             let monster_theta = (e.dir.x / e.dir.z).atan() + (if e.dir.z < 0.0 { 0.0 } else { PI });
 

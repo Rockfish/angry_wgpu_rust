@@ -156,7 +156,7 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
         delta_time: 0.0,
         frame_time: 0.0,
         first_mouse: false,
-        run: false,
+        run: true,
         viewport_width: 0,
         viewport_height: 0,
         scaled_width: 0,
@@ -204,7 +204,7 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
                             world.camera_controller.update(&world.input, world.delta_time);
                             world.camera_handler.update_camera(&context, &world.camera_controller);
 
-                            game_run(&context, &mut world);
+                            game_run(&mut context, &mut world);
 
                             context.window.request_redraw();
                         }
@@ -236,7 +236,9 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
         .unwrap();
 }
 
-fn game_run(context: &GpuContext, mut world: &mut World) {
+fn game_run(context: &mut GpuContext, mut world: &mut World) {
+
+    world.player.borrow_mut().handle_input(&world.input, world.delta_time);
 
     world.game_camera.position = world.player.borrow().position + world.camera_follow_vec;// + vec3(world.game_params_handler.uniform.time, 0.0, 0.0);
 
@@ -320,6 +322,7 @@ fn game_run(context: &GpuContext, mut world: &mut World) {
     }
 
     world.player_transform = player_transform;
+    print!("player position: {:?}\n", &world.player.borrow().position);
 
     world.muzzle_flash.borrow_mut().update(world.delta_time);
     // world.bullet_system.borrow_mut().update_bullets(&mut world);
@@ -330,7 +333,7 @@ fn game_run(context: &GpuContext, mut world: &mut World) {
     bullet_system.borrow_mut().update_bullets(&mut world);
 
     if world.player.borrow().is_alive {
-        enemy_system.borrow_mut().update(&mut world);
+        enemy_system.borrow_mut().update(context, &mut world);
         enemy_system.borrow_mut().chase_player(&mut world);
     }
 
