@@ -6,6 +6,7 @@ use wgpu::{RenderPipeline, TextureView};
 use crate::render::enemy_render::{create_enemy_shader_pipeline, render_enemy_model};
 use crate::render::floor_render::{create_floor_shader_pipeline, render_floor};
 use crate::render::player_render::{create_player_shader_pipeline, render_model};
+use crate::render::sprite_render::create_sprite_shader_pipeline;
 
 pub const BACKGROUND_COLOR: wgpu::Color = wgpu::Color {
     r: 0.1,
@@ -18,6 +19,7 @@ pub struct AnimRenderPass {
     player_shader_pipeline: RenderPipeline,
     floor_shader_pipeline: RenderPipeline,
     enemy_shader_pipeline: RenderPipeline,
+    sprite_shader_pipeline: RenderPipeline,
     pub depth_texture_view: TextureView,
 }
 
@@ -26,6 +28,7 @@ impl AnimRenderPass {
         let player_shader_pipeline = create_player_shader_pipeline(context);
         let floor_shader_pipeline = create_floor_shader_pipeline(context);
         let enemy_shader_pipeline = create_enemy_shader_pipeline(context);
+        let sprite_shader_pipeline = create_sprite_shader_pipeline(context);
 
         let depth_texture_view = create_depth_texture_view(&context);
 
@@ -33,6 +36,7 @@ impl AnimRenderPass {
             player_shader_pipeline,
             floor_shader_pipeline,
             enemy_shader_pipeline,
+            sprite_shader_pipeline,
             depth_texture_view,
         }
     }

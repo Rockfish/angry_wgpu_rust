@@ -330,7 +330,7 @@ fn game_run(context: &mut GpuContext, mut world: &mut World) {
     let bullet_system = world.bullet_system.clone();
     let enemy_system = world.enemy_system.clone();
 
-    bullet_system.borrow_mut().update_bullets(&mut world);
+    bullet_system.borrow_mut().update_bullets(context, &mut world);
 
     if world.player.borrow().is_alive {
         enemy_system.borrow_mut().update(context, &mut world);

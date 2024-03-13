@@ -1,9 +1,10 @@
 use std::cell::RefCell;
-use glam::{vec2, vec3, Mat4, Vec2, Vec3};
 use std::f32::consts::PI;
 use std::ops::Deref;
 use std::rc::Rc;
 use std::time::Duration;
+
+use glam::{Mat4, vec2, Vec2, vec3, Vec3};
 use spark_gap::animator::{AnimationClip, AnimationRepeat, WeightedAnimation};
 use spark_gap::gpu_context::GpuContext;
 use spark_gap::hash_map::HashMap;
@@ -11,7 +12,8 @@ use spark_gap::input::Input;
 use spark_gap::model::Model;
 use spark_gap::model_builder::ModelBuilder;
 use spark_gap::texture_config::TextureType;
-use winit::keyboard::{Key, KeyCode};
+use winit::keyboard::KeyCode;
+
 use crate::world::World;
 
 const PLAYER_SPEED: f32 = 5.0;

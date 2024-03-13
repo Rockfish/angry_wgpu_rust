@@ -1,45 +1,45 @@
 use spark_gap::camera::camera_handler::CAMERA_BIND_GROUP_LAYOUT;
 use spark_gap::gpu_context::GpuContext;
 use spark_gap::material::MATERIAL_BIND_GROUP_LAYOUT;
-use wgpu::{RenderPass, RenderPipeline};
-use crate::floor::Floor;
-use crate::load_shader;
-use crate::params::shader_params::SHADER_PARAMETERS_BIND_GROUP_LAYOUT;
-use crate::render::buffers::TRANSFORM_BIND_GROUP_LAYOUT;
-use crate::small_mesh::SmallMesh;
-use crate::world::World;
+use wgpu::RenderPipeline;
 
-pub fn create_floor_shader_pipeline(context: &GpuContext) -> RenderPipeline {
+use crate::load_shader;
+use crate::render::buffers::TRANSFORM_BIND_GROUP_LAYOUT;
+use crate::small_mesh::{SmallMesh};
+use crate::sprite_sheet::SPRITE_BIND_GROUP_LAYOUT;
+
+pub fn create_sprite_shader_pipeline(context: &GpuContext) -> RenderPipeline {
     let camera_bind_group_layout = context.bind_layout_cache.get(CAMERA_BIND_GROUP_LAYOUT).unwrap();
-    let model_bind_group_layout = context.bind_layout_cache.get(TRANSFORM_BIND_GROUP_LAYOUT).unwrap();
-    let lighting_bind_group_layout = context.bind_layout_cache.get(SHADER_PARAMETERS_BIND_GROUP_LAYOUT).unwrap();
+    let transform_bind_group_layout = context.bind_layout_cache.get(TRANSFORM_BIND_GROUP_LAYOUT).unwrap();
     let material_bind_group_layout = context.bind_layout_cache.get(MATERIAL_BIND_GROUP_LAYOUT).unwrap();
+    let sprite_bind_group_layout = context.bind_layout_cache.get(SPRITE_BIND_GROUP_LAYOUT).unwrap();
 
     let pipeline_layout = context.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("Render Pipeline Layout"),
         bind_group_layouts: &[
             camera_bind_group_layout,
-            model_bind_group_layout,
-            lighting_bind_group_layout,
-            material_bind_group_layout, // diffuse
-            material_bind_group_layout, // specular
-            material_bind_group_layout, // emissive
+            transform_bind_group_layout,
+            material_bind_group_layout,
+            sprite_bind_group_layout,
         ],
         push_constant_ranges: &[],
     });
 
-    let shader = context.device.create_shader_module(load_shader!("floor_shader.wgsl").into());
+    let shader = context.device.create_shader_module(load_shader!("sprite_shader.wgsl").into());
 
     let swapchain_capabilities = context.surface.get_capabilities(&context.adapter);
     let swapchain_format = swapchain_capabilities.formats[0];
 
     let render_pipeline = context.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-        label: Some("Render Pipeline"),
+        label: Some("sprite render pipeline"),
         layout: Some(&pipeline_layout),
         vertex: wgpu::VertexState {
             module: &shader,
             entry_point: "vs_main",
-            buffers: &[SmallMesh::vertex_description()],
+            buffers: &[
+                SmallMesh::vertex_description(),
+                age_buffer_layout(),
+            ],
         },
         fragment: Some(wgpu::FragmentState {
             module: &shader,
@@ -69,23 +69,17 @@ pub fn create_floor_shader_pipeline(context: &GpuContext) -> RenderPipeline {
     render_pipeline
 }
 
-pub fn render_floor<'a>(
-    context: &'a GpuContext,
-    world: &'a World,
-    mut render_pass: RenderPass<'a>,
-    floor: &'a Floor,
-) -> RenderPass<'a> {
-
-    render_pass.set_bind_group(0, &world.camera_handler.bind_group, &[]);
-    render_pass.set_bind_group(1, &floor.bind_group, &[]);
-    render_pass.set_bind_group(2, &world.shader_params.bind_group, &[]);
-
-    render_pass.set_bind_group(3, floor.material_diffuse.bind_group.as_ref(), &[]);
-    render_pass.set_bind_group(4, floor.material_specular.bind_group.as_ref(), &[]);
-    render_pass.set_bind_group(5, floor.material_normal.bind_group.as_ref(), &[]);
-
-    render_pass.set_vertex_buffer(0, floor.floor_mesh.vertex_buffer.slice(..));
-    render_pass.draw(0..6, 0..1);
-
-    render_pass
+fn age_buffer_layout() -> wgpu::VertexBufferLayout<'static> {
+    use std::mem;
+    wgpu::VertexBufferLayout {
+        array_stride: mem::size_of::<f32>() as wgpu::BufferAddress,
+        step_mode: wgpu::VertexStepMode::Instance,
+        attributes: &[
+            wgpu::VertexAttribute {
+                offset: 0,
+                shader_location: 3,
+                format: wgpu::VertexFormat::Float32,
+            },
+        ],
+    }
 }

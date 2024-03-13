@@ -196,7 +196,7 @@ impl BulletSystem {
          */
 
         let impact_sprite_sheet_material = Material::new(context, "angrygl_assets/bullet/impact_spritesheet_with_00.png", &texture_config).unwrap();
-        let bullet_impact_spritesheet = SpriteSheet::new(impact_sprite_sheet_material, 11, 0.05);
+        let bullet_impact_spritesheet = SpriteSheet::new(context, impact_sprite_sheet_material, 11, 0.05);
 
         Self {
             all_bullet_positions: Default::default(),
@@ -284,7 +284,7 @@ impl BulletSystem {
         true
     }
 
-    pub fn update_bullets(&mut self, world: &mut World) {
+    pub fn update_bullets(&mut self, context: &GpuContext, world: &mut World) {
         //}, bulletImpactSprites: &mut Vec<SpriteSheetSprite>) {
 
         let use_aabb = !world.enemies.is_empty();
@@ -375,7 +375,7 @@ impl BulletSystem {
             for sheet in self.bullet_impact_sprites.iter_mut() {
                 sheet.age += &world.delta_time;
             }
-            let sprite_duration = self.bullet_impact_spritesheet.num_columns as f32 * self.bullet_impact_spritesheet.time_per_sprite;
+            let sprite_duration = self.bullet_impact_spritesheet.uniform.num_columns as f32 * self.bullet_impact_spritesheet.uniform.time_per_sprite;
 
             self.bullet_impact_sprites.retain(|sprite| sprite.age < sprite_duration);
         }

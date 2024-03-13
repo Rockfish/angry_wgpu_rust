@@ -4,7 +4,8 @@ use spark_gap::material::Material;
 use spark_gap::texture_config::{TextureConfig, TextureFilter, TextureType, TextureWrap};
 use wgpu::{BindGroup, Buffer};
 use wgpu::util::DeviceExt;
-use crate::small_mesh::{create_small_mesh_bind_group, create_small_mesh_bind_group_layout, create_transform_buffer, get_or_create_bind_group_layout, SMALL_MESH_BIND_GROUP_LAYOUT, SmallMesh};
+use crate::render::buffers::{create_buffer_bind_group, create_mat4_buffer, create_uniform_bind_group_layout, get_or_create_bind_group_layout, TRANSFORM_BIND_GROUP_LAYOUT};
+use crate::small_mesh::{SmallMesh};
 
 const FLOOR_SIZE: f32 = 100.0;
 const TILE_SIZE: f32 = 1.0;
@@ -59,10 +60,9 @@ impl Floor {
 
         let model_transform = Mat4::IDENTITY;
 
-        let transform_buffer = create_transform_buffer(context, "floor transform", &model_transform);
-
-        let layout = get_or_create_bind_group_layout(context, SMALL_MESH_BIND_GROUP_LAYOUT, create_small_mesh_bind_group_layout);
-        let bind_group = create_small_mesh_bind_group(context, &layout, &transform_buffer);
+        let transform_buffer = create_mat4_buffer(context, &model_transform, "floor transform");
+        let layout = get_or_create_bind_group_layout(context, TRANSFORM_BIND_GROUP_LAYOUT, create_uniform_bind_group_layout);
+        let bind_group = create_buffer_bind_group(context, &layout, &transform_buffer, "floor transform bind");
 
         Self {
             floor_mesh,

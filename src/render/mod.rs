@@ -1,11 +1,16 @@
 use std::borrow::Cow;
 use std::io::Read;
 use naga_oil::compose::{ComposableModuleDefinition, ComposableModuleDescriptor, Composer, ComposerError, NagaModuleDescriptor};
+use spark_gap::gpu_context::GpuContext;
+use wgpu::Buffer;
+use wgpu::util::DeviceExt;
 
 pub mod main_render;
 pub mod player_render;
 pub mod floor_render;
 pub mod enemy_render;
+pub mod buffers;
+mod sprite_render;
 
 fn try_every_shader_file(
     composer: &mut Composer,
@@ -101,3 +106,4 @@ macro_rules! load_shader {
         )
     };
 }
+
