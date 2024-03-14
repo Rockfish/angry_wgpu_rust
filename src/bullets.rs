@@ -384,7 +384,7 @@ impl BulletSystem {
             if !enemy.is_alive {
                 self.bullet_impact_sprites.push(SpriteSheetSprite::new(enemy.position));
                 world.burn_marks.add_mark(enemy.position);
-                world.sound_system.play_enemy_destroyed();
+                // world.sound_system.play_enemy_destroyed();
             }
         }
 

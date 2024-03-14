@@ -84,7 +84,7 @@ pub struct World {
     pub bullet_system: Rc<RefCell<BulletSystem>>,
     pub enemies: Vec<Enemy>,
     pub burn_marks: BurnMarks,
-    pub sound_system: SoundSystem,
+    // pub sound_system: SoundSystem,
     pub buffer_ready: bool,
     pub light_direction: Vec3,
 }

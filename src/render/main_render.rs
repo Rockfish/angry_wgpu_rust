@@ -6,7 +6,7 @@ use wgpu::{RenderPipeline, TextureView};
 use crate::render::enemy_render::{create_enemy_shader_pipeline, render_enemy_model};
 use crate::render::floor_render::{create_floor_shader_pipeline, render_floor};
 use crate::render::player_render::{create_player_shader_pipeline, render_model};
-use crate::render::sprite_render::create_sprite_shader_pipeline;
+use crate::render::sprite_render::{create_sprite_shader_pipeline, render_muzzle_flashes};
 
 pub const BACKGROUND_COLOR: wgpu::Color = wgpu::Color {
     r: 0.1,
@@ -91,6 +91,7 @@ impl AnimRenderPass {
         world.shader_params.update_buffer(context);
 
         let floor = &world.floor.borrow();
+        let flashes = &world.muzzle_flash.borrow();
 
         {
             let mut render_pass = encoder.begin_render_pass(&pass_description);
@@ -102,6 +103,9 @@ impl AnimRenderPass {
             // player
             render_pass.set_pipeline(&self.player_shader_pipeline);
             render_pass = render_model(context, world, render_pass, &model, &world.player_transform);
+
+            render_pass.set_pipeline(&self.sprite_shader_pipeline);
+            render_pass = render_muzzle_flashes(context, world, render_pass, flashes);
 
             // enemy
             let mut model_transform = world.player_transform * Mat4::from_scale(vec3(8.0, 8.0, 8.0));

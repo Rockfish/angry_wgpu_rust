@@ -80,6 +80,7 @@ impl SoundSystem {
 
         bullet_sink.set_speed(1.5);
         explosion_sink.set_speed(2.0);
+        bullet_sink.clear();
 
         let player_shooting_source = AudioSource::new("assets/Audio/Player_SFX/player_shooting_one.wav");
         let enemy_destroyed_source = AudioSource::new("assets/Audio/Enemy_SFX/enemy_Spider_DestroyedExplosion.wav");

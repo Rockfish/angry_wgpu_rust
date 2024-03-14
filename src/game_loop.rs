@@ -187,7 +187,7 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
         bullet_system: RefCell::new(bullet_system).into(),
         enemies: vec![],
         burn_marks: BurnMarks::new(&mut context, unit_square_quad.clone()),
-        sound_system: SoundSystem::new(),
+        // sound_system: SoundSystem::new(),
         buffer_ready: false,
     };
 
@@ -317,14 +317,16 @@ fn game_run(context: &mut GpuContext, mut world: &mut World) {
         world.player.borrow_mut().last_fire_time = world.frame_time;
         if world.bullet_system.borrow_mut().create_bullets(dx, dz, &muzzle_transform, SPREAD_AMOUNT) {
             world.muzzle_flash.borrow_mut().add_flash();
-            world.sound_system.play_player_shooting();
+            // world.sound_system.play_player_shooting();
+            println!("firing");
         }
     }
 
     world.player_transform = player_transform;
-    print!("player position: {:?}\n", &world.player.borrow().position);
+    // print!("player position: {:?}\n", &world.player.borrow().position);
 
-    world.muzzle_flash.borrow_mut().update(world.delta_time);
+    world.muzzle_flash.borrow_mut().update(context, world.delta_time, &muzzle_transform);
+
     // world.bullet_system.borrow_mut().update_bullets(&mut world);
 
     let bullet_system = world.bullet_system.clone();
@@ -343,7 +345,7 @@ fn game_run(context: &mut GpuContext, mut world: &mut World) {
     let mut use_point_light = false;
     let mut muzzle_world_position = Vec3::default();
 
-    if !world.muzzle_flash.borrow().muzzle_flash_sprites_age.is_empty() {
+    if !world.muzzle_flash.borrow().sprites_age.is_empty() {
         let min_age = world.muzzle_flash.borrow().get_min_age();
         let muzzle_world_position_vec4 = muzzle_transform * vec4(0.0, 0.0, 0.0, 1.0);
 

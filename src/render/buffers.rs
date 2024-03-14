@@ -26,7 +26,7 @@ pub fn create_vertex_buffer<T: bytemuck::Pod>(context: &GpuContext, uniform: &[T
     context.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some(label),
         contents: bytemuck::cast_slice(uniform),
-        usage: wgpu::BufferUsages::VERTEX,
+        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
     })
 }
 
@@ -46,7 +46,7 @@ pub fn create_mat4_buffer(context: &mut GpuContext, data: &Mat4, label: &str) ->
     })
 }
 
-pub fn update_uniform_buffer<T: bytemuck::Pod>(context: &GpuContext, buffer: &Buffer, uniform: &[T; 1]) {
+pub fn update_uniform_buffer<T: bytemuck::Pod>(context: &GpuContext, buffer: &Buffer, uniform: &[T]) {
     context
         .queue
         .write_buffer(buffer, 0, bytemuck::cast_slice(uniform));

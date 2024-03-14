@@ -6,6 +6,7 @@ struct VertexInput {
     @location(1) tex_coords: vec2<f32>,
 };
 
+// age vec
 struct InstanceInput {
     @location(3) age: f32,
 }

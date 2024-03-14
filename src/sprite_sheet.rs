@@ -18,8 +18,8 @@ pub struct SpriteSheetUniform {
 pub struct SpriteSheet {
     pub material: Material,
     pub uniform: SpriteSheetUniform,
-    pub buffer: Buffer,
-    pub bind_group: BindGroup
+    pub uniform_buffer: Buffer,
+    pub uniform_bind_group: BindGroup
 }
 
 impl SpriteSheet {
@@ -32,8 +32,8 @@ impl SpriteSheet {
         Self {
             material,
             uniform,
-            buffer,
-            bind_group,
+            uniform_buffer: buffer,
+            uniform_bind_group: bind_group,
         }
     }
 }

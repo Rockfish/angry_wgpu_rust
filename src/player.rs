@@ -12,6 +12,7 @@ use spark_gap::input::Input;
 use spark_gap::model::Model;
 use spark_gap::model_builder::ModelBuilder;
 use spark_gap::texture_config::TextureType;
+use winit::event::MouseButton;
 use winit::keyboard::KeyCode;
 
 use crate::world::World;
@@ -253,7 +254,9 @@ impl Player {
             if direction_vec.length_squared() > 0.01 {
                 self.position += direction_vec.normalize() * self.speed * delta_time;
             }
-            self.direction = vec2(direction_vec.x, direction_vec.z)
+            self.direction = vec2(direction_vec.x, direction_vec.z);
+
+            self.is_trying_to_fire = input.mouse_buttons_held.contains(&MouseButton::Left);
         }
     }
 }

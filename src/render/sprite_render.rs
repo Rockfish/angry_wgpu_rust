@@ -1,12 +1,15 @@
 use spark_gap::camera::camera_handler::CAMERA_BIND_GROUP_LAYOUT;
 use spark_gap::gpu_context::GpuContext;
 use spark_gap::material::MATERIAL_BIND_GROUP_LAYOUT;
-use wgpu::RenderPipeline;
+use wgpu::{RenderPass, RenderPipeline};
+use crate::floor::Floor;
 
 use crate::load_shader;
+use crate::muzzle_flash::MuzzleFlash;
 use crate::render::buffers::TRANSFORM_BIND_GROUP_LAYOUT;
 use crate::small_mesh::{SmallMesh};
 use crate::sprite_sheet::SPRITE_BIND_GROUP_LAYOUT;
+use crate::world::World;
 
 pub fn create_sprite_shader_pipeline(context: &GpuContext) -> RenderPipeline {
     let camera_bind_group_layout = context.bind_layout_cache.get(CAMERA_BIND_GROUP_LAYOUT).unwrap();
@@ -82,4 +85,26 @@ fn age_buffer_layout() -> wgpu::VertexBufferLayout<'static> {
             },
         ],
     }
+}
+
+pub fn render_muzzle_flashes<'a>(
+    context: &'a GpuContext,
+    world: &'a World,
+    mut render_pass: RenderPass<'a>,
+    flash: &'a MuzzleFlash,
+) -> RenderPass<'a> {
+
+    render_pass.set_bind_group(0, &world.camera_handler.bind_group, &[]);
+    render_pass.set_bind_group(1, &flash.transform_bind_group, &[]);
+
+    render_pass.set_bind_group(2, &flash.impact_spritesheet.material.bind_group, &[]);
+    render_pass.set_bind_group(3, &flash.impact_spritesheet.uniform_bind_group, &[]);
+
+
+    render_pass.set_vertex_buffer(0, flash.sprite_mesh.vertex_buffer.slice(..));
+    render_pass.set_vertex_buffer(1, flash.age_buffer.slice(..));
+
+    render_pass.draw(0..6, 0..(flash.sprites_age.len() as u32));
+
+    render_pass
 }
