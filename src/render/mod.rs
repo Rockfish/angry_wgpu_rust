@@ -1,23 +1,18 @@
-use std::borrow::Cow;
-use std::io::Read;
 use naga_oil::compose::{ComposableModuleDefinition, ComposableModuleDescriptor, Composer, ComposerError, NagaModuleDescriptor};
 use spark_gap::gpu_context::GpuContext;
-use wgpu::Buffer;
+use std::borrow::Cow;
+use std::io::Read;
 use wgpu::util::DeviceExt;
+use wgpu::Buffer;
 
+pub mod buffers;
+pub mod enemy_render;
+pub mod floor_render;
 pub mod main_render;
 pub mod player_render;
-pub mod floor_render;
-pub mod enemy_render;
-pub mod buffers;
 mod sprite_render;
 
-fn try_every_shader_file(
-    composer: &mut Composer,
-    for_shader: &str,
-    shader_dir: &str,
-    max_iters: usize,
-) -> anyhow::Result<()> {
+fn try_every_shader_file(composer: &mut Composer, for_shader: &str, shader_dir: &str, max_iters: usize) -> anyhow::Result<()> {
     let mut try_again = true;
     let mut iters = 0;
     while try_again {
@@ -40,20 +35,19 @@ fn try_every_shader_file(
 
                 file.read_to_string(&mut shader)?;
 
-                let result =  composer.add_composable_module(ComposableModuleDescriptor {
-                        file_path: path.to_str().unwrap(),
-                        source: shader.as_str(),
-                        ..Default::default()
-                    });
+                let result = composer.add_composable_module(ComposableModuleDescriptor {
+                    file_path: path.to_str().unwrap(),
+                    source: shader.as_str(),
+                    ..Default::default()
+                });
 
                 match result {
-                    Ok(_) => {try_again = false}
+                    Ok(_) => try_again = false,
                     Err(e) => {
                         println!("composer error: {:#?}\n", e);
                         try_again = true
                     }
                 }
-
             } else if path.is_dir() {
                 try_every_shader_file(composer, for_shader, path.to_str().unwrap(), max_iters)?;
             }
@@ -69,10 +63,7 @@ fn try_every_shader_file(
     Ok(())
 }
 
-pub fn preprocess_shader(
-    file_path: &'static str,
-    base_include_path: &'static str,
-) -> wgpu::ShaderModuleDescriptor<'static> {
+pub fn preprocess_shader(file_path: &'static str, base_include_path: &'static str) -> wgpu::ShaderModuleDescriptor<'static> {
     let mut composer = Composer::non_validating();
 
     println!("file_path: {:?}", &file_path);
@@ -100,10 +91,6 @@ pub fn preprocess_shader(
 #[macro_export]
 macro_rules! load_shader {
     ($file_path:literal) => {
-        $crate::render::preprocess_shader(
-            concat!("shaders/", $file_path),
-            "shaders",
-        )
+        $crate::render::preprocess_shader(concat!("shaders/", $file_path), "shaders")
     };
 }
-

@@ -45,8 +45,8 @@ struct VertexOutput {
 }
 
 @fragment fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-  var col = in.age / sprite.time_per_sprite;
-  var sprite_tex_coords = vec2<f32>(in.tex_coords.x / sprite.number_of_columns + col * (1.0 / sprite.number_of_columns), in.tex_coords.y);
+  var col = floor(in.age / sprite.time_per_sprite);
+  var sprite_tex_coords = vec2<f32>(in.tex_coords.x / sprite.number_of_columns + col * (1 / sprite.number_of_columns), in.tex_coords.y);
   var color = textureSample(sprite_texture, sprite_sampler, sprite_tex_coords);
   return color;
 }

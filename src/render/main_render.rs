@@ -1,12 +1,12 @@
-use std::f32::consts::PI;
-use glam::{Mat4, vec3, Vec3};
-use crate::world::World;
-use spark_gap::gpu_context::GpuContext;
-use wgpu::{RenderPipeline, TextureView};
 use crate::render::enemy_render::{create_enemy_shader_pipeline, render_enemy_model};
 use crate::render::floor_render::{create_floor_shader_pipeline, render_floor};
 use crate::render::player_render::{create_player_shader_pipeline, render_model};
 use crate::render::sprite_render::{create_sprite_shader_pipeline, render_muzzle_flashes};
+use crate::world::World;
+use glam::{vec3, Mat4, Vec3};
+use spark_gap::gpu_context::GpuContext;
+use std::f32::consts::PI;
+use wgpu::{RenderPipeline, TextureView};
 
 pub const BACKGROUND_COLOR: wgpu::Color = wgpu::Color {
     r: 0.1,
@@ -46,10 +46,7 @@ impl AnimRenderPass {
     }
 
     pub fn render(&mut self, context: &GpuContext, world: &World) {
-        let frame = context
-            .surface
-            .get_current_texture()
-            .expect("Failed to acquire next swap chain texture");
+        let frame = context.surface.get_current_texture().expect("Failed to acquire next swap chain texture");
 
         let view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -79,9 +76,7 @@ impl AnimRenderPass {
             occlusion_query_set: None,
         };
 
-        let mut encoder = context
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+        let mut encoder = context.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
         let player = &world.player.borrow();
         let model = player.model.borrow();
@@ -92,37 +87,32 @@ impl AnimRenderPass {
 
         let floor = &world.floor.borrow();
         let flashes = &world.muzzle_flash.borrow();
+        let enemy_system = &world.enemy_system.borrow();
 
         {
             let mut render_pass = encoder.begin_render_pass(&pass_description);
 
             // floor
             render_pass.set_pipeline(&self.floor_shader_pipeline);
-            render_pass = render_floor(context, world, render_pass, floor);
+            render_pass = render_floor(world, render_pass, floor);
 
             // player
             render_pass.set_pipeline(&self.player_shader_pipeline);
             render_pass = render_model(context, world, render_pass, &model, &world.player_transform);
 
+            // muzzle flashes
             render_pass.set_pipeline(&self.sprite_shader_pipeline);
-            render_pass = render_muzzle_flashes(context, world, render_pass, flashes);
+            render_pass = render_muzzle_flashes(world, render_pass, flashes);
 
-            // enemy
-            let mut model_transform = world.player_transform * Mat4::from_scale(vec3(8.0, 8.0, 8.0));
-            // model_transform *= Mat4::from_scale(Vec3::splat(0.01));
-            // model_transform *= Mat4::from_axis_angle(vec3(0.0, 1.0, 0.0), monster_theta);
-            model_transform *= Mat4::from_axis_angle(vec3(0.0, 0.0, 1.0), PI);
-            model_transform *= Mat4::from_axis_angle(vec3(1.0, 0.0, 0.0), 90.0f32.to_radians());
-
+            // enemies
             render_pass.set_pipeline(&self.enemy_shader_pipeline);
-            render_pass = render_enemy_model(context, world, render_pass, &enemy_model, &model_transform);
+            render_pass = render_enemy_model(context, world, render_pass, &enemy_model, enemy_system);
         }
 
         context.queue.submit(Some(encoder.finish()));
         frame.present();
     }
 }
-
 
 pub const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 
@@ -149,4 +139,3 @@ pub fn create_depth_texture_view(context: &GpuContext) -> TextureView {
     let texture = context.device.create_texture(&desc);
     texture.create_view(&wgpu::TextureViewDescriptor::default())
 }
-

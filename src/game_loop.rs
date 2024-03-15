@@ -1,32 +1,32 @@
-use std::cell::RefCell;
-use std::f32::consts::PI;
-use std::rc::Rc;
-use crate::render::main_render::{create_depth_texture_view, AnimRenderPass};
-use crate::world::{FIRE_INTERVAL, FLOOR_LIGHT_FACTOR, FLOOR_NON_BLUE, LIGHT_FACTOR, MONSTER_Y, NON_BLUE, PLAYER_MODEL_SCALE, SPREAD_AMOUNT, World};
-use glam::{vec3, Mat4, Vec3, vec4};
-use spark_gap::camera::camera_handler::{CameraHandler, CameraUniform};
-use spark_gap::camera::fly_camera_controller::FlyCameraController;
-use spark_gap::frame_counter::FrameCounter;
-use spark_gap::gpu_context::GpuContext;
-use spark_gap::input::Input;
-use spark_gap::model_builder::ModelBuilder;
-use std::sync::Arc;
-use std::time::Instant;
-use spark_gap::camera::camera::Camera;
-use spark_gap::math::{get_world_ray_from_mouse, ray_plane_intersection};
-use winit::event::{Event, WindowEvent};
-use winit::event_loop::EventLoop;
-use winit::keyboard;
-use winit::keyboard::NamedKey::Escape;
-use winit::window::Window;
 use crate::bullets::BulletSystem;
 use crate::burn_marks::BurnMarks;
 use crate::enemy::EnemySystem;
 use crate::floor::Floor;
 use crate::params::common::{DirectionLight, PointLight};
+use crate::render::main_render::{create_depth_texture_view, AnimRenderPass};
+use crate::world::{World, FIRE_INTERVAL, FLOOR_LIGHT_FACTOR, FLOOR_NON_BLUE, LIGHT_FACTOR, MONSTER_Y, NON_BLUE, PLAYER_MODEL_SCALE, SPREAD_AMOUNT};
+use glam::{vec3, vec4, Mat4, Vec3};
+use spark_gap::camera::camera::Camera;
+use spark_gap::camera::camera_handler::{CameraHandler, CameraUniform};
+use spark_gap::camera::fly_camera_controller::FlyCameraController;
+use spark_gap::frame_counter::FrameCounter;
+use spark_gap::gpu_context::GpuContext;
+use spark_gap::input::Input;
+use spark_gap::math::{get_world_ray_from_mouse, ray_plane_intersection};
+use spark_gap::model_builder::ModelBuilder;
+use std::cell::RefCell;
+use std::f32::consts::PI;
+use std::rc::Rc;
+use std::sync::Arc;
+use std::time::Instant;
+use winit::event::{Event, WindowEvent};
+use winit::event_loop::EventLoop;
+use winit::keyboard;
+use winit::keyboard::NamedKey::Escape;
+use winit::window::Window;
 // use crate::params::floor_lighting::{FloorLightingHandler, FloorLightingUniform};
-use crate::params::shader_params::{ShaderParametersHandler, ShaderParametersUniform};
 use crate::muzzle_flash::MuzzleFlash;
+use crate::params::shader_params::{ShaderParametersHandler, ShaderParametersUniform};
 use crate::player::Player;
 use crate::quads::{create_more_obnoxious_quad, create_obnoxious_quad, create_unit_square};
 use crate::sound_system::SoundSystem;
@@ -116,11 +116,9 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
     let floating_projection = Mat4::perspective_rh_gl(floating_camera.zoom.to_radians(), aspect_ratio, 0.1, 100.0);
     let orthographic_projection = Mat4::orthographic_rh_gl(-ortho_width, ortho_width, -ortho_height, ortho_height, 0.1, 100.0);
 
-
     let camera_position = vec3(0.0, 100.0, 300.0);
     let camera_controller = FlyCameraController::new(aspect_ratio, camera_position, 0.0, 0.0);
     let camera_handler = CameraHandler::new(&mut context, &camera_controller);
-
 
     let view_position = vec3(100.0, 100.0, 300.0);
 
@@ -133,7 +131,6 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
     shader_params.set_use_light(true);
     shader_params.set_use_point_light(true);
     shader_params.set_use_emissive(true);
-
 
     // --- quads ---
 
@@ -237,10 +234,9 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
 }
 
 fn game_run(context: &mut GpuContext, mut world: &mut World) {
-
     world.player.borrow_mut().handle_input(&world.input, world.delta_time);
 
-    world.game_camera.position = world.player.borrow().position + world.camera_follow_vec;// + vec3(world.game_params_handler.uniform.time, 0.0, 0.0);
+    world.game_camera.position = world.player.borrow().position + world.camera_follow_vec; // + vec3(world.game_params_handler.uniform.time, 0.0, 0.0);
 
     let game_view = Mat4::look_at_rh(world.game_camera.position, world.player.borrow().position, world.game_camera.up);
 
@@ -264,7 +260,7 @@ fn game_run(context: &mut GpuContext, mut world: &mut World) {
         }
     };
 
-    let camera_uniform =  CameraUniform {
+    let camera_uniform = CameraUniform {
         projection,
         view: camera_view,
         position: world.game_camera.position,

@@ -1,3 +1,6 @@
+use crate::load_shader;
+use crate::params::shader_params::SHADER_PARAMETERS_BIND_GROUP_LAYOUT;
+use crate::world::World;
 use glam::Mat4;
 use spark_gap::camera::camera_handler::CAMERA_BIND_GROUP_LAYOUT;
 use spark_gap::gpu_context::GpuContext;
@@ -7,9 +10,6 @@ use spark_gap::model_builder::MODEL_BIND_GROUP_LAYOUT;
 use spark_gap::model_mesh::ModelVertex;
 use spark_gap::texture_config::TextureType;
 use wgpu::{IndexFormat, RenderPass, RenderPipeline};
-use crate::params::shader_params::SHADER_PARAMETERS_BIND_GROUP_LAYOUT;
-use crate::load_shader;
-use crate::world::World;
 
 pub fn render_model<'a>(
     context: &'a GpuContext,
@@ -18,7 +18,6 @@ pub fn render_model<'a>(
     model: &'a Model,
     model_transform: &Mat4,
 ) -> RenderPass<'a> {
-
     model.update_model_buffers(context, model_transform);
 
     render_pass.set_bind_group(0, &world.camera_handler.bind_group, &[]);
@@ -61,7 +60,7 @@ pub fn create_player_shader_pipeline(context: &GpuContext) -> RenderPipeline {
             material_bind_group_layout, // diffuse
             material_bind_group_layout, // specular
             material_bind_group_layout, // emissive
-            // material_bind_group_layout, // shadow
+                                        // material_bind_group_layout, // shadow
         ],
         push_constant_ranges: &[],
     });

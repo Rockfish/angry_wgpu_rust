@@ -19,12 +19,12 @@ pub struct SpriteSheet {
     pub material: Material,
     pub uniform: SpriteSheetUniform,
     pub uniform_buffer: Buffer,
-    pub uniform_bind_group: BindGroup
+    pub uniform_bind_group: BindGroup,
 }
 
 impl SpriteSheet {
-    pub fn new(context: &mut GpuContext, material: Material, num_columns: i32, time_per_sprite: f32) -> Self {
-        let uniform = SpriteSheetUniform { num_columns: num_columns as f32, time_per_sprite };
+    pub fn new(context: &mut GpuContext, material: Material, num_columns: f32, time_per_sprite: f32) -> Self {
+        let uniform = SpriteSheetUniform { num_columns, time_per_sprite };
         let buffer = create_uniform_buffer(context, &[uniform], "sprite sheet uniform");
         let layout = get_or_create_bind_group_layout(context, SPRITE_BIND_GROUP_LAYOUT, create_uniform_bind_group_layout);
         let bind_group = create_buffer_bind_group(context, &layout, &buffer, "sprite sheet uniform bind");
@@ -45,10 +45,6 @@ pub struct SpriteSheetSprite {
 
 impl SpriteSheetSprite {
     pub fn new(world_position: Vec3) -> Self {
-        Self {
-            world_position,
-            age: 0.0,
-        }
+        Self { world_position, age: 0.0 }
     }
 }
-

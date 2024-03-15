@@ -1,11 +1,13 @@
+use crate::render::buffers::{
+    create_buffer_bind_group, create_mat4_buffer, create_uniform_bind_group_layout, get_or_create_bind_group_layout, TRANSFORM_BIND_GROUP_LAYOUT,
+};
+use crate::small_mesh::SmallMesh;
 use glam::{vec3, Mat4, Vec3};
 use spark_gap::gpu_context::GpuContext;
 use spark_gap::material::Material;
 use spark_gap::texture_config::{TextureConfig, TextureFilter, TextureType, TextureWrap};
-use wgpu::{BindGroup, Buffer};
 use wgpu::util::DeviceExt;
-use crate::render::buffers::{create_buffer_bind_group, create_mat4_buffer, create_uniform_bind_group_layout, get_or_create_bind_group_layout, TRANSFORM_BIND_GROUP_LAYOUT};
-use crate::small_mesh::{SmallMesh};
+use wgpu::{BindGroup, Buffer};
 
 const FLOOR_SIZE: f32 = 100.0;
 const TILE_SIZE: f32 = 1.0;

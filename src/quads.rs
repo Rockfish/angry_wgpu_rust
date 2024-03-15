@@ -1,7 +1,7 @@
-use std::rc::Rc;
-use spark_gap::gpu_context::GpuContext;
-use wgpu::util::DeviceExt;
 use crate::small_mesh::SmallMesh;
+use spark_gap::gpu_context::GpuContext;
+use std::rc::Rc;
+use wgpu::util::DeviceExt;
 
 #[rustfmt::skip]
 const UNIT_SQUARE: [f32; 30] = [
@@ -32,8 +32,6 @@ const OBNOXIOUS_QUAD: [f32; 30] = [
     1.0, 1.0, -0.9, 1.0, 1.0,
     0.5, 1.0, -0.9, 0.0, 1.0,
 ];
-
-
 
 pub fn create_unit_square(context: &mut GpuContext) -> SmallMesh {
     let vertex_buffer = context.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {

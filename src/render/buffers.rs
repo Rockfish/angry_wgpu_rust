@@ -1,8 +1,8 @@
-use std::rc::Rc;
 use glam::Mat4;
 use spark_gap::gpu_context::GpuContext;
-use wgpu::{BindGroup, BindGroupLayout, Buffer};
+use std::rc::Rc;
 use wgpu::util::DeviceExt;
+use wgpu::{BindGroup, BindGroupLayout, Buffer};
 
 pub const TRANSFORM_BIND_GROUP_LAYOUT: &str = "transform bind group layout";
 
@@ -47,24 +47,22 @@ pub fn create_mat4_buffer(context: &mut GpuContext, data: &Mat4, label: &str) ->
 }
 
 pub fn update_uniform_buffer<T: bytemuck::Pod>(context: &GpuContext, buffer: &Buffer, uniform: &[T]) {
-    context
-        .queue
-        .write_buffer(buffer, 0, bytemuck::cast_slice(uniform));
+    context.queue.write_buffer(buffer, 0, bytemuck::cast_slice(uniform));
 }
 
 pub fn update_uniform_box_buffer<T: bytemuck::Pod>(context: &GpuContext, buffer: &Buffer, uniform: &Box<[T]>) {
-    context
-        .queue
-        .write_buffer(buffer, 0, bytemuck::cast_slice(uniform));
+    context.queue.write_buffer(buffer, 0, bytemuck::cast_slice(uniform));
 }
 
 pub fn update_mat4_buffer(context: &GpuContext, buffer: &Buffer, data: &Mat4) {
-    context
-        .queue
-        .write_buffer(buffer, 0, bytemuck::cast_slice(&data.to_cols_array()));
+    context.queue.write_buffer(buffer, 0, bytemuck::cast_slice(&data.to_cols_array()));
 }
 
-pub fn get_or_create_bind_group_layout(context: &mut GpuContext, layout_name: &str, create_func: fn(&GpuContext, &str) -> BindGroupLayout) -> Rc<BindGroupLayout> {
+pub fn get_or_create_bind_group_layout(
+    context: &mut GpuContext,
+    layout_name: &str,
+    create_func: fn(&GpuContext, &str) -> BindGroupLayout,
+) -> Rc<BindGroupLayout> {
     if !context.bind_layout_cache.contains_key(layout_name) {
         let layout = create_func(context, layout_name);
         context.bind_layout_cache.insert(String::from(layout_name), layout.into());
@@ -75,55 +73,43 @@ pub fn get_or_create_bind_group_layout(context: &mut GpuContext, layout_name: &s
 
 pub fn create_vertex_bind_group_layout(context: &GpuContext, label: &str) -> BindGroupLayout {
     context.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        entries: &[
-            wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
+        entries: &[wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+            ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: None,
             },
-        ],
+            count: None,
+        }],
         label: Some(label),
     })
 }
 
 pub fn create_uniform_bind_group_layout(context: &GpuContext, label: &str) -> BindGroupLayout {
     context.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        entries: &[
-            wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
+        entries: &[wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+            ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: None,
             },
-        ],
+            count: None,
+        }],
         label: Some(label),
     })
 }
 
-pub fn create_buffer_bind_group(
-    context: &GpuContext,
-    bind_group_layout: &BindGroupLayout,
-    buffer: &Buffer,
-    label: &str,
-) -> BindGroup {
+pub fn create_buffer_bind_group(context: &GpuContext, bind_group_layout: &BindGroupLayout, buffer: &Buffer, label: &str) -> BindGroup {
     context.device.create_bind_group(&wgpu::BindGroupDescriptor {
         layout: bind_group_layout,
-        entries: &[
-            wgpu::BindGroupEntry {
-                binding: 0,
-                resource: buffer.as_entire_binding(),
-            },
-        ],
+        entries: &[wgpu::BindGroupEntry {
+            binding: 0,
+            resource: buffer.as_entire_binding(),
+        }],
         label: Some(label),
     })
 }
-

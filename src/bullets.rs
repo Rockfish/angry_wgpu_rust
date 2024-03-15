@@ -1,17 +1,17 @@
 use crate::aabb::Aabb;
 // use crate::enemy::{Enemy, ENEMY_COLLIDER};
+use crate::capsule::Capsule;
+use crate::enemy::{Enemy, ENEMY_COLLIDER};
 use crate::geom::{distance_between_line_segments, oriented_angle};
+use crate::small_mesh::SmallMesh;
 use crate::sprite_sheet::{SpriteSheet, SpriteSheetSprite};
+use crate::world::World;
 use glam::{vec3, vec4, Mat4, Quat, Vec3, Vec4Swizzles};
-use std::f32::consts::PI;
-use spark_gap::{SIZE_OF_QUAT, SIZE_OF_VEC3};
 use spark_gap::gpu_context::GpuContext;
 use spark_gap::material::Material;
 use spark_gap::texture_config::{TextureConfig, TextureFilter, TextureType, TextureWrap};
-use crate::capsule::Capsule;
-use crate::enemy::{Enemy, ENEMY_COLLIDER};
-use crate::small_mesh::SmallMesh;
-use crate::world::World;
+use spark_gap::{SIZE_OF_QUAT, SIZE_OF_VEC3};
+use std::f32::consts::PI;
 
 pub struct BulletGroup {
     start_index: usize,
@@ -28,7 +28,6 @@ impl BulletGroup {
         }
     }
 }
-
 
 pub struct BulletSystem {
     all_bullet_positions: Vec<Vec3>,
@@ -196,7 +195,7 @@ impl BulletSystem {
          */
 
         let impact_sprite_sheet_material = Material::new(context, "angrygl_assets/bullet/impact_spritesheet_with_00.png", &texture_config).unwrap();
-        let bullet_impact_spritesheet = SpriteSheet::new(context, impact_sprite_sheet_material, 11, 0.05);
+        let bullet_impact_spritesheet = SpriteSheet::new(context, impact_sprite_sheet_material, 11.0, 0.05);
 
         Self {
             all_bullet_positions: Default::default(),
@@ -455,7 +454,6 @@ impl BulletSystem {
 
     // needs layout, buffers, and render
     pub fn draw_bullet_impacts(&self, world: &World, projection_view: &Mat4) {
-
         // sprite_shader.set_mat4("PV", projection_view);
         // sprite_shader.set_int("numCols", self.bullet_impact_spritesheet.num_columns);
         // sprite_shader.set_float("timePerSprite", self.bullet_impact_spritesheet.time_per_sprite);
@@ -464,10 +462,10 @@ impl BulletSystem {
 
         // unsafe {
         //     gl::Enable(gl::BLEND);
-            // gl::DepthMask(gl::FALSE);
-            // gl::Disable(gl::CULL_FACE);
-            //
-            // gl::BindVertexArray(self.unit_square_vao as GLuint);
+        // gl::DepthMask(gl::FALSE);
+        // gl::Disable(gl::CULL_FACE);
+        //
+        // gl::BindVertexArray(self.unit_square_vao as GLuint);
         // }
 
         let scale = 2.0f32; // 0.25f32;
@@ -588,4 +586,3 @@ mod tests {
         }
     }
 }
-

@@ -1,9 +1,8 @@
-use std::rc::Rc;
 use glam::Mat4;
 use spark_gap::gpu_context::GpuContext;
-use wgpu::{BindGroup, BindGroupLayout, Buffer};
+use std::rc::Rc;
 use wgpu::util::DeviceExt;
-
+use wgpu::{BindGroup, BindGroupLayout, Buffer};
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -41,6 +40,3 @@ impl SmallMesh {
         }
     }
 }
-
-
-

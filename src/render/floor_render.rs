@@ -1,13 +1,13 @@
-use spark_gap::camera::camera_handler::CAMERA_BIND_GROUP_LAYOUT;
-use spark_gap::gpu_context::GpuContext;
-use spark_gap::material::MATERIAL_BIND_GROUP_LAYOUT;
-use wgpu::{RenderPass, RenderPipeline};
 use crate::floor::Floor;
 use crate::load_shader;
 use crate::params::shader_params::SHADER_PARAMETERS_BIND_GROUP_LAYOUT;
 use crate::render::buffers::TRANSFORM_BIND_GROUP_LAYOUT;
 use crate::small_mesh::SmallMesh;
 use crate::world::World;
+use spark_gap::camera::camera_handler::CAMERA_BIND_GROUP_LAYOUT;
+use spark_gap::gpu_context::GpuContext;
+use spark_gap::material::MATERIAL_BIND_GROUP_LAYOUT;
+use wgpu::{RenderPass, RenderPipeline};
 
 pub fn create_floor_shader_pipeline(context: &GpuContext) -> RenderPipeline {
     let camera_bind_group_layout = context.bind_layout_cache.get(CAMERA_BIND_GROUP_LAYOUT).unwrap();
@@ -69,13 +69,7 @@ pub fn create_floor_shader_pipeline(context: &GpuContext) -> RenderPipeline {
     render_pipeline
 }
 
-pub fn render_floor<'a>(
-    context: &'a GpuContext,
-    world: &'a World,
-    mut render_pass: RenderPass<'a>,
-    floor: &'a Floor,
-) -> RenderPass<'a> {
-
+pub fn render_floor<'a>(world: &'a World, mut render_pass: RenderPass<'a>, floor: &'a Floor) -> RenderPass<'a> {
     render_pass.set_bind_group(0, &world.camera_handler.bind_group, &[]);
     render_pass.set_bind_group(1, &floor.bind_group, &[]);
     render_pass.set_bind_group(2, &world.shader_params.bind_group, &[]);

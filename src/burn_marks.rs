@@ -1,8 +1,8 @@
+use crate::small_mesh::SmallMesh;
 use glam::{vec3, Mat4, Vec3};
 use spark_gap::gpu_context::GpuContext;
 use spark_gap::material::Material;
 use spark_gap::texture_config::{TextureConfig, TextureWrap};
-use crate::small_mesh::SmallMesh;
 
 const BURN_MARK_TIME: f32 = 5.0;
 

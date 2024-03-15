@@ -2,6 +2,17 @@
 #import spark::common::{VertexInput, CameraUniform, DirectionLight, PointLight, ShaderParameters};
 #import spark::common::{MAX_BONES, MAX_BONE_INFLUENCE, get_animated_position, AnimationOutput};
 
+const MAX_ENEMIES = 100;
+
+// age vec
+struct InstanceInput {
+    @location(7) index: u32,
+}
+
+struct EnemyUniform {
+    model_transform: mat4x4<f32>,
+    aim_rotation: mat4x4<f32>,
+}
 
 // camera
 @group(0) @binding(0) var<uniform> camera: CameraUniform;
@@ -14,9 +25,11 @@
 // game and lighting
 @group(2) @binding(0) var<uniform> params: ShaderParameters;
 
+@group(3) @binding(0) var<uniform> enemy_uniforms: array<EnemyUniform, MAX_ENEMIES>;
+
 // material information
-@group(3) @binding(0) var diffuse_texture: texture_2d<f32>;
-@group(3) @binding(1) var diffuse_sampler: sampler;
+@group(4) @binding(0) var diffuse_texture: texture_2d<f32>;
+@group(4) @binding(1) var diffuse_sampler: sampler;
 
 //@group(4) @binding(0) var specular_texture: texture_2d<f32>;
 //@group(4) @binding(1) var specular_sampler: sampler;
@@ -41,27 +54,31 @@ struct VertexOutput {
     @location(3) light_space_position: vec4<f32>,
 };
 
-@vertex fn vs_main(in: VertexInput) -> VertexOutput {
+@vertex fn vs_main(in: VertexInput, instance: InstanceInput) -> VertexOutput {
 
     var result: VertexOutput;
+
+    var enemy = enemy_uniforms[instance.index];
+    var enemy_transform = enemy.model_transform;
+    var enemy_aim_rotation = enemy.aim_rotation;
 
     var time = params.time;
 
     var x_offset = sin(wiggleTimeModifier * time + wiggleDistModifier * distance(params.nose_position.xyz, in.position)) * wiggleMagnitude;
 
     if (params.depth_mode == 0) {
-        result.position = camera.projection * camera.view * model_transform
+        result.position = camera.projection * camera.view * enemy_transform
                         * vec4<f32>(in.position.x + x_offset, in.position.y, in.position.z, 1.0);
    } else {
-        result.position = params.light_space_matrix * model_transform
+        result.position = params.light_space_matrix * enemy_transform
                         * vec4<f32>(in.position.x + x_offset, in.position.y, in.position.z, 1.0);
    }
 
     result.tex_coords = in.tex_coords;
 
-    result.normal = (params.aim_rotation * vec4<f32>(in.normal, 1.0)).xyz;
+    result.normal = (enemy_aim_rotation * vec4<f32>(in.normal, 1.0)).xyz;
 
-    result.world_position = (model_transform * vec4<f32>(in.position, 1.0)).xyz;
+    result.world_position = (enemy_transform * vec4<f32>(in.position, 1.0)).xyz;
     result.light_space_position = params.light_space_matrix * vec4<f32>(result.world_position, 1.0);
 
     return result;

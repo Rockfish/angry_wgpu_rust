@@ -1,8 +1,3 @@
-mod game_loop;
-mod world;
-mod sound_system;
-mod geom;
-mod sprite_sheet;
 mod aabb;
 mod bullets;
 mod bullets_parallel;
@@ -12,20 +7,26 @@ mod enemy;
 mod floor;
 mod framebuffers;
 mod game;
+mod game_loop;
+mod geom;
 mod muzzle_flash;
+mod params;
 mod player;
 mod quads;
 mod render;
-mod params;
 mod small_mesh;
+mod sound_system;
+mod sprite_sheet;
+mod world;
 
+use crate::game_loop::run;
 use std::sync::Arc;
 use winit::event_loop::EventLoop;
-use crate::game_loop::run;
 
 extern crate pretty_env_logger;
 #[macro_use]
 extern crate log;
+extern crate core;
 
 pub fn main() {
     env_logger::init();
@@ -33,7 +34,7 @@ pub fn main() {
     let event_loop = EventLoop::new().unwrap();
 
     #[allow(unused_mut)]
-        let mut builder = winit::window::WindowBuilder::new();
+    let mut builder = winit::window::WindowBuilder::new();
 
     #[cfg(target_arch = "wasm32")]
     {

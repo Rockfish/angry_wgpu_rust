@@ -1,11 +1,10 @@
-use glam::{Mat4, Vec3, Vec4, vec4};
-use spark_gap::gpu_context::GpuContext;
-use wgpu::{BindGroup, BindGroupLayout, Buffer};
-use wgpu::util::DeviceExt;
 use crate::params::common::{DirectionLight, PointLight};
+use glam::{vec4, Mat4, Vec3, Vec4};
+use spark_gap::gpu_context::GpuContext;
+use wgpu::util::DeviceExt;
+use wgpu::{BindGroup, BindGroupLayout, Buffer};
 
 pub const SHADER_PARAMETERS_BIND_GROUP_LAYOUT: &str = "shader_params_bind_group_layout";
-
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -26,7 +25,6 @@ pub struct ShaderParametersUniform {
     pub _pad: [f32; 2],
 }
 
-
 pub struct ShaderParametersHandler {
     pub uniform: ShaderParametersUniform,
     pub uniform_buffer: Buffer,
@@ -35,7 +33,6 @@ pub struct ShaderParametersHandler {
 
 impl ShaderParametersHandler {
     pub fn new(context: &mut GpuContext) -> Self {
-
         let uniform = ShaderParametersUniform {
             direction_light: Default::default(),
             point_light: Default::default(),
@@ -53,8 +50,7 @@ impl ShaderParametersHandler {
             _pad: [0.0; 2],
         };
 
-        let uniform_buffer = context.device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
+        let uniform_buffer = context.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Game params buffer"),
             contents: bytemuck::cast_slice(&[uniform]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
@@ -62,7 +58,9 @@ impl ShaderParametersHandler {
 
         if !context.bind_layout_cache.contains_key(SHADER_PARAMETERS_BIND_GROUP_LAYOUT) {
             let layout = create_game_params_bind_group_layout(context);
-            context.bind_layout_cache.insert(String::from(SHADER_PARAMETERS_BIND_GROUP_LAYOUT), layout.into());
+            context
+                .bind_layout_cache
+                .insert(String::from(SHADER_PARAMETERS_BIND_GROUP_LAYOUT), layout.into());
         }
 
         let bind_group_layout = context.bind_layout_cache.get(SHADER_PARAMETERS_BIND_GROUP_LAYOUT).unwrap();
@@ -79,15 +77,13 @@ impl ShaderParametersHandler {
         Self {
             uniform,
             uniform_buffer,
-            bind_group
+            bind_group,
         }
     }
 
     pub fn update_buffer(&self, context: &GpuContext) {
         // println!("uniform: {:#?}", &self.uniform);
-        context
-            .queue
-            .write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[self.uniform]));
+        context.queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[self.uniform]));
     }
 
     pub fn set_aim_rotation(&mut self, val: Mat4) {
@@ -99,7 +95,7 @@ impl ShaderParametersHandler {
     }
 
     pub fn set_direction_light_direction(&mut self, val: Vec3) {
-       self.uniform.direction_light.direction = vec4(val.x, val.y, val.z, 1.0);
+        self.uniform.direction_light.direction = vec4(val.x, val.y, val.z, 1.0);
     }
 
     pub fn set_direction_light_color(&mut self, val: Vec3) {
@@ -147,13 +143,12 @@ impl ShaderParametersHandler {
     }
 
     pub fn set_time(&mut self, val: f32) {
-       self.uniform.time = val;
+        self.uniform.time = val;
     }
 }
 
 fn create_game_params_bind_group_layout(context: &GpuContext) -> BindGroupLayout {
-    context.device.create_bind_group_layout(
-        &wgpu::BindGroupLayoutDescriptor {
+    context.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         entries: &[wgpu::BindGroupLayoutEntry {
             binding: 0,
             visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
