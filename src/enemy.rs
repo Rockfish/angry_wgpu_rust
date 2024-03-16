@@ -29,7 +29,7 @@ pub struct EnemyUniform {
 
 pub struct Enemy {
     pub position: Vec3,
-    pub dir: Vec3,
+    pub direction: Vec3,
     pub is_alive: bool,
 }
 
@@ -91,7 +91,8 @@ impl EnemySystem {
         self.instances_uniforms.clear();
 
         for (i, e) in world.enemies.iter_mut().enumerate() {
-            let monster_theta = (e.dir.x / e.dir.z).atan() + (if e.dir.z < 0.0 { 0.0 } else { PI });
+
+            let monster_theta = (e.direction.x / e.direction.z).atan() + (if e.direction.z < 0.0 { 0.0 } else { PI });
 
             let mut model_transform = Mat4::from_translation(e.position);
 
@@ -112,6 +113,7 @@ impl EnemySystem {
         }
 
         update_uniform_buffer(context, &self.instances_buffer, self.instances_uniforms.as_slice());
+        update_uniform_buffer(context, &self.instances_index_buffer, self.instance_indexes.as_slice());
     }
 
     pub fn spawn_enemy(&mut self, world: &mut World) {
@@ -121,10 +123,14 @@ impl EnemySystem {
         let x = theta.sin().mul_add(SPAWN_RADIUS, world.player.borrow().position.x);
         let z = theta.cos().mul_add(SPAWN_RADIUS, world.player.borrow().position.z);
 
+        let position = vec3(x, self.monster_y, z);
+        let mut dir = world.player.borrow_mut().position - position;
+        dir.y = 0.0;
+
         let enemy = Enemy {
-            position: vec3(x, self.monster_y, z),
-            dir: vec3(0.0, 0.0, 1.0),
-            is_alive: false,
+            position,
+            direction: dir.normalize_or_zero(),
+            is_alive: true,
         };
 
         world.enemies.push(enemy);
@@ -137,12 +143,12 @@ impl EnemySystem {
         for enemy in world.enemies.iter_mut() {
             let mut dir = player.position - enemy.position;
             dir.y = 0.0;
-            enemy.dir = dir.normalize_or_zero();
-            enemy.position += enemy.dir * world.delta_time * MONSTER_SPEED;
+            enemy.direction = dir.normalize_or_zero();
+            enemy.position += enemy.direction * world.delta_time * MONSTER_SPEED;
 
             if player.is_alive {
-                let p1 = enemy.position - enemy.dir * (ENEMY_COLLIDER.height / 2.0);
-                let p2 = enemy.position + enemy.dir * (ENEMY_COLLIDER.height / 2.0);
+                let p1 = enemy.position - enemy.direction * (ENEMY_COLLIDER.height / 2.0);
+                let p2 = enemy.position + enemy.direction * (ENEMY_COLLIDER.height / 2.0);
                 let dist = distance_between_point_and_line_segment(&player_collision_position, &p1, &p2);
 
                 if dist <= (PLAYER_COLLISION_RADIUS + ENEMY_COLLIDER.radius) {

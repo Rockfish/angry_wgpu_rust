@@ -120,7 +120,7 @@ pub fn render_enemy_model<'a>(
     render_pass.set_vertex_buffer(1, enemy_system.instances_index_buffer.slice(..));
 
     render_pass.set_index_buffer(mesh.index_buffer.slice(..), IndexFormat::Uint32);
-    render_pass.draw_indexed(0..mesh.num_elements, 0, 0..1);
+    render_pass.draw_indexed(0..mesh.num_elements, 0, 0..enemy_system.instance_indexes.len() as u32);
     // }
 
     render_pass

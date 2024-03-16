@@ -508,8 +508,8 @@ fn bullet_collides_with_enemy(position: &Vec3, direction: &Vec3, enemy: &Enemy) 
 
     let a0 = *position - *direction * (BULLET_COLLIDER.height / 2.0);
     let a1 = *position + *direction * (BULLET_COLLIDER.height / 2.0);
-    let b0 = enemy.position - enemy.dir * (ENEMY_COLLIDER.height / 2.0);
-    let b1 = enemy.position + enemy.dir * (ENEMY_COLLIDER.height / 2.0);
+    let b0 = enemy.position - enemy.direction * (ENEMY_COLLIDER.height / 2.0);
+    let b1 = enemy.position + enemy.direction * (ENEMY_COLLIDER.height / 2.0);
 
     let closet_distance = distance_between_line_segments(&a0, &a1, &b0, &b1);
 
