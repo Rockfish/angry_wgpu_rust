@@ -1,5 +1,10 @@
 #define_import_path spark::common
 
+const PLAYER_MODEL_SCALE: f32 = 0.0044;
+const PLAYER_MODEL_GUN_HEIGHT: f32 = 110.0;
+const PLAYER_MODEL_GUN_MUZZLE_OFFSET: f32 = 100.0;
+const MONSTER_Y: f32 = PLAYER_MODEL_SCALE * PLAYER_MODEL_GUN_HEIGHT;
+
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) normal: vec3<f32>,
@@ -43,11 +48,10 @@ struct AnimationOutput {
 struct ShaderParameters {
     direction_light: DirectionLight,
     point_light: PointLight,
-    aim_rotation: mat4x4<f32>,
+    model_rotation: mat4x4<f32>,
     light_space_matrix: mat4x4<f32>,
     view_position: vec4<f32>,
     ambient_color: vec4<f32>,
-    nose_position: vec4<f32>,
     time: f32,
     depth_mode: i32,
     use_light: i32,

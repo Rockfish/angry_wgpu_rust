@@ -1,6 +1,6 @@
 use crate::render::enemy_render::{create_enemy_shader_pipeline, render_enemy_model};
 use crate::render::floor_render::{create_floor_shader_pipeline, render_floor};
-use crate::render::player_render::{create_player_shader_pipeline, render_model};
+use crate::render::player_render::{create_player_shader_pipeline, render_player};
 use crate::render::sprite_render::{create_sprite_shader_pipeline, render_muzzle_flashes};
 use crate::world::World;
 use glam::{vec3, Mat4, Vec3};
@@ -78,14 +78,10 @@ impl AnimRenderPass {
 
         let mut encoder = context.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
-        let player = &world.player.borrow();
-        let model = player.model.borrow();
-        let enemy_system = &world.enemy_system.borrow();
-        let enemy_model = &enemy_system.enemy_model;
-
         world.shader_params.update_buffer(context);
 
         let floor = &world.floor.borrow();
+        let player = &world.player.borrow();
         let flashes = &world.muzzle_flash.borrow();
         let enemy_system = &world.enemy_system.borrow();
 
@@ -98,7 +94,7 @@ impl AnimRenderPass {
 
             // player
             render_pass.set_pipeline(&self.player_shader_pipeline);
-            render_pass = render_model(context, world, render_pass, &model, &world.player_transform);
+            render_pass = render_player(context, world, render_pass, player);
 
             // muzzle flashes
             render_pass.set_pipeline(&self.sprite_shader_pipeline);
@@ -106,7 +102,7 @@ impl AnimRenderPass {
 
             // enemies
             render_pass.set_pipeline(&self.enemy_shader_pipeline);
-            render_pass = render_enemy_model(context, world, render_pass, &enemy_model, enemy_system);
+            render_pass = render_enemy_model(context, world, render_pass, enemy_system);
         }
 
         context.queue.submit(Some(encoder.finish()));

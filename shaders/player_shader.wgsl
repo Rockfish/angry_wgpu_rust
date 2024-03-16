@@ -49,7 +49,7 @@ fn vs_main(model: VertexInput) -> VertexOutput {
     result.position = camera.projection * camera.view * model_transform * anim_output.position;
     result.tex_coords = model.tex_coords;
 
-    result.normal = (params.aim_rotation * vec4<f32>(model.normal, 1.0)).xyz;
+    result.normal = (params.model_rotation * vec4<f32>(model.normal, 1.0)).xyz;
 
     result.world_position = (model_transform * vec4<f32>(model.position, 1.0)).xyz;
     result.light_space_position = params.light_space_matrix * vec4<f32>(result.world_position, 1.0);
@@ -94,7 +94,7 @@ fn vs_main(model: VertexInput) -> VertexOutput {
         if (use_point_light != 0) {
           var lightDir = normalize(params.point_light.world_position.xyz - in.world_position);
           var diff = max(dot(normal, lightDir), 0.0);
-          var diffuse  = 0.7 * params.point_light.color.xyz * diff * (textureSample(diffuse_texture, diffuse_sampler, in.tex_coords)).xyz;
+          var diffuse  = 0.7 * params.point_light.color.xyz * diff * textureSample(diffuse_texture, diffuse_sampler, in.tex_coords).xyz;
           color += vec4<f32>(diffuse.xyz, 1.0);
         }
 

@@ -1,6 +1,7 @@
 #define_import_path spark::player_shader
 #import spark::common::{VertexInput, CameraUniform, DirectionLight, PointLight, ShaderParameters};
 #import spark::common::{MAX_BONES, MAX_BONE_INFLUENCE, get_animated_position, AnimationOutput};
+#import spark::common::{MONSTER_Y};
 
 const MAX_ENEMIES = 100;
 
@@ -11,7 +12,7 @@ struct InstanceInput {
 
 struct EnemyUniform {
     model_transform: mat4x4<f32>,
-    aim_rotation: mat4x4<f32>,
+    model_rotation: mat4x4<f32>,
 }
 
 // camera
@@ -43,6 +44,7 @@ struct EnemyUniform {
 const wiggleMagnitude: f32 = 3.0;
 const wiggleDistModifier: f32 = 0.12;
 const wiggleTimeModifier: f32 = 9.4;
+const nose_position: vec3<f32> = vec3<f32>(1.0, MONSTER_Y, -2.0);
 
 // Vertex shader section
 
@@ -60,11 +62,11 @@ struct VertexOutput {
 
     var enemy = enemy_uniforms[instance.index];
     var enemy_transform = enemy.model_transform;
-    var enemy_aim_rotation = enemy.aim_rotation;
+    var enemy_model_rotation = enemy.model_rotation;
 
     var time = params.time;
 
-    var x_offset = sin(wiggleTimeModifier * time + wiggleDistModifier * distance(params.nose_position.xyz, in.position)) * wiggleMagnitude;
+    var x_offset = sin(wiggleTimeModifier * time + wiggleDistModifier * distance(nose_position, in.position)) * wiggleMagnitude;
 
     if (params.depth_mode == 0) {
         result.position = camera.projection * camera.view * enemy_transform
@@ -76,7 +78,7 @@ struct VertexOutput {
 
     result.tex_coords = in.tex_coords;
 
-    result.normal = (enemy_aim_rotation * vec4<f32>(in.normal, 1.0)).xyz;
+    result.normal = (enemy_model_rotation * vec4<f32>(in.normal, 1.0)).xyz;
 
     result.world_position = (enemy_transform * vec4<f32>(in.position, 1.0)).xyz;
     result.light_space_position = params.light_space_matrix * vec4<f32>(result.world_position, 1.0);

@@ -11,11 +11,10 @@ pub const SHADER_PARAMETERS_BIND_GROUP_LAYOUT: &str = "shader_params_bind_group_
 pub struct ShaderParametersUniform {
     pub direction_light: DirectionLight,
     pub point_light: PointLight,
-    pub aim_rotation: Mat4,
+    pub model_rotation: Mat4,
     pub light_space_matrix: Mat4,
     pub view_position: Vec4,
     pub ambient_color: Vec4,
-    pub nose_position: Vec4,
     pub time: f32,
     pub depth_mode: i32,
     pub use_light: i32,
@@ -36,11 +35,10 @@ impl ShaderParametersHandler {
         let uniform = ShaderParametersUniform {
             direction_light: Default::default(),
             point_light: Default::default(),
-            aim_rotation: Default::default(),
+            model_rotation: Default::default(),
             light_space_matrix: Default::default(),
             view_position: Default::default(),
             ambient_color: Default::default(),
-            nose_position: Default::default(),
             time: 0.0,
             depth_mode: 0,
             use_light: 0,
@@ -86,8 +84,8 @@ impl ShaderParametersHandler {
         context.queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[self.uniform]));
     }
 
-    pub fn set_aim_rotation(&mut self, val: Mat4) {
-        self.uniform.aim_rotation = val;
+    pub fn set_model_rotation(&mut self, val: Mat4) {
+        self.uniform.model_rotation = val;
     }
 
     pub fn set_light_space_matrix(&mut self, val: Mat4) {
@@ -114,12 +112,8 @@ impl ShaderParametersHandler {
         self.uniform.view_position = vec4(val.x, val.y, val.z, 1.0);
     }
 
-    pub fn set_nose_position(&mut self, val: Vec3) {
-        self.uniform.nose_position = vec4(val.x, val.y, val.z, 1.0);
-    }
-
     pub fn set_ambient_color(&mut self, val: Vec3) {
-        self.uniform.nose_position = vec4(val.x, val.y, val.z, 1.0);
+        self.uniform.ambient_color = vec4(val.x, val.y, val.z, 1.0);
     }
 
     pub fn set_depth_mode(&mut self, val: bool) {

@@ -146,7 +146,7 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
 
     let scene_render = AnimRenderPass::new(&mut context);
 
-    let model_transform = Mat4::from_translation(vec3(0.0, 0.0, 1.0));
+    player.model_transform = Mat4::from_translation(vec3(0.0, 0.0, 1.0));
 
     let mut world = World {
         start_instant: Instant::now(),
@@ -176,7 +176,6 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
         light_direction: player_light_dir,
         player: player.into(),
         scene_render: scene_render.into(),
-        player_transform: model_transform,
         shader_params,
         floor: floor.into(),
         enemy_system: RefCell::new(enemy_system).into(),
@@ -314,12 +313,11 @@ fn game_run(context: &mut GpuContext, mut world: &mut World) {
         if world.bullet_system.borrow_mut().create_bullets(dx, dz, &muzzle_transform, SPREAD_AMOUNT) {
             world.muzzle_flash.borrow_mut().add_flash();
             // world.sound_system.play_player_shooting();
-            println!("firing");
+            // println!("firing");
         }
     }
 
-    world.player_transform = player_transform;
-    // print!("player position: {:?}\n", &world.player.borrow().position);
+    world.player.borrow_mut().model_transform = player_transform;
 
     world.muzzle_flash.borrow_mut().update(context, world.delta_time, &muzzle_transform);
 
@@ -335,8 +333,6 @@ fn game_run(context: &mut GpuContext, mut world: &mut World) {
         enemy_system.borrow_mut().chase_player(&mut world);
     }
 
-    // Update world.player
-    world.player.borrow_mut().update(&world, aim_theta);
 
     let mut use_point_light = false;
     let mut muzzle_world_position = Vec3::default();
@@ -363,16 +359,15 @@ fn game_run(context: &mut GpuContext, mut world: &mut World) {
     let light_view = Mat4::look_at_rh(player_position - 20.0 * world.light_direction, player_position, vec3(0.0, 1.0, 0.0));
     let light_space_matrix = light_projection * light_view;
 
-    world.shader_params.set_aim_rotation(aim_rotation);
+    world.shader_params.set_model_rotation(aim_rotation);
     world.shader_params.set_view_position(world.game_camera.position.clone());
     world.shader_params.set_light_space_matrix(light_space_matrix);
     world.shader_params.set_use_point_light(use_point_light);
     world.shader_params.set_time(world.frame_time);
     world.shader_params.update_buffer(context);
 
-    world.player.borrow().model.borrow().update_animation(world.delta_time);
-
-    world.player.borrow_mut().update(&world, 1.0);
+    world.player.borrow().model.update_animation(world.delta_time);
+    world.player.borrow_mut().update(&world, aim_theta);
 
     // world.floor.borrow().draw(&context, &projection_view);
 

@@ -84,16 +84,10 @@ pub fn render_enemy_model<'a>(
     context: &'a GpuContext,
     world: &'a World,
     mut render_pass: RenderPass<'a>,
-    model: &'a Model,
     enemy_system: &'a EnemySystem,
 ) -> RenderPass<'a> {
-    // let mut model_transform = world.player_transform * Mat4::from_scale(vec3(8.0, 8.0, 8.0));
-    // // model_transform *= Mat4::from_scale(Vec3::splat(0.01));
-    // // model_transform *= Mat4::from_axis_angle(vec3(0.0, 1.0, 0.0), monster_theta);
-    // model_transform *= Mat4::from_axis_angle(vec3(0.0, 0.0, 1.0), PI);
-    // model_transform *= Mat4::from_axis_angle(vec3(1.0, 0.0, 0.0), 90.0f32.to_radians());
-    //
-    // model.update_model_buffers(context, &model_transform);
+
+    let model = &enemy_system.enemy_model;
 
     render_pass.set_bind_group(0, &world.camera_handler.bind_group, &[]);
     render_pass.set_bind_group(1, &model.bind_group, &[]);
@@ -101,27 +95,25 @@ pub fn render_enemy_model<'a>(
     render_pass.set_bind_group(3, &enemy_system.instances_bind_group, &[]);
 
     // not sure how to handle multiple meshes and instances together, so skipping that for now.
-    // for mesh in model.meshes.iter() {
+    for mesh in model.meshes.iter() {
+        model.update_mesh_buffers(context, &mesh);
 
-    let mesh = &model.meshes[0];
-    model.update_mesh_buffers(context, &mesh);
+        let diffuse_bind_group = model.get_material_bind_group(&mesh, TextureType::Diffuse);
+        // let specular_bind_group = model.get_material_bind_group(&mesh, TextureType::Specular);
+        // let emissive_bind_group = model.get_material_bind_group(&mesh, TextureType::Emissive);
+        // let shadow_map_bind_group = model.get_material_bind_group(&mesh, TextureType::Diffuse); // shadow
 
-    let diffuse_bind_group = model.get_material_bind_group(&mesh, TextureType::Diffuse);
-    // let specular_bind_group = model.get_material_bind_group(&mesh, TextureType::Specular);
-    // let emissive_bind_group = model.get_material_bind_group(&mesh, TextureType::Emissive);
-    // let shadow_map_bind_group = model.get_material_bind_group(&mesh, TextureType::Diffuse); // shadow
+        render_pass.set_bind_group(4, diffuse_bind_group, &[]);
+        // render_pass.set_bind_group(4, specular_bind_group, &[]);
+        // render_pass.set_bind_group(5, emissive_bind_group, &[]);
+        // render_pass.set_bind_group(6, shadow_map_bind_group, &[]);
 
-    render_pass.set_bind_group(4, diffuse_bind_group, &[]);
-    // render_pass.set_bind_group(4, specular_bind_group, &[]);
-    // render_pass.set_bind_group(5, emissive_bind_group, &[]);
-    // render_pass.set_bind_group(6, shadow_map_bind_group, &[]);
+        render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
+        render_pass.set_vertex_buffer(1, enemy_system.instances_index_buffer.slice(..));
 
-    render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-    render_pass.set_vertex_buffer(1, enemy_system.instances_index_buffer.slice(..));
-
-    render_pass.set_index_buffer(mesh.index_buffer.slice(..), IndexFormat::Uint32);
-    render_pass.draw_indexed(0..mesh.num_elements, 0, 0..enemy_system.instance_indexes.len() as u32);
-    // }
+        render_pass.set_index_buffer(mesh.index_buffer.slice(..), IndexFormat::Uint32);
+        render_pass.draw_indexed(0..mesh.num_elements, 0, 0..enemy_system.instance_indexes.len() as u32);
+    }
 
     render_pass
 }

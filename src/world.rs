@@ -76,7 +76,6 @@ pub struct World {
     pub input: Input,
     pub player: RefCell<Player>,
     pub scene_render: RefCell<AnimRenderPass>,
-    pub player_transform: Mat4,
     pub shader_params: ShaderParametersHandler,
     pub floor: RefCell<Floor>,
     pub enemy_system: Rc<RefCell<EnemySystem>>,

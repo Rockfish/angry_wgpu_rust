@@ -29,9 +29,10 @@ const LEFT: &str = "left";
 const DEAD: &str = "dead";
 
 pub struct Player {
-    pub model: RefCell<Model>,
+    pub model: Model,
     pub position: Vec3,
     pub direction: Vec2,
+    pub model_transform: Mat4,
     pub speed: f32,
     pub aim_theta: f32,
     pub last_fire_time: f32,
@@ -127,13 +128,14 @@ impl Player {
         let animation_name = Rc::from("idle");
 
         let player = Self {
-            model: player_model.into(),
+            model: player_model,
+            position: vec3(0.0, 0.0, 0.0),
+            direction: vec2(0.0, 0.0),
+            model_transform: Mat4::IDENTITY,
             last_fire_time: 0.0,
             is_trying_to_fire: false,
             is_alive: true,
             aim_theta: 0.0,
-            position: vec3(0.0, 0.0, 0.0),
-            direction: vec2(0.0, 0.0),
             death_time: -1.0,
             animation_name,
             speed: PLAYER_SPEED,
@@ -142,7 +144,7 @@ impl Player {
             anim_hash,
         };
 
-        player.model.borrow().play_clip(&player.animations.idle);
+        player.model.play_clip(&player.animations.idle);
 
         player
     }
@@ -150,9 +152,7 @@ impl Player {
     pub fn set_animation(&mut self, animation_name: &Rc<str>, seconds: u32) {
         if !self.animation_name.eq(animation_name) {
             self.animation_name = animation_name.clone();
-            self.model
-                .borrow()
-                .play_clip_with_transition(self.animations.get(self.animation_name.deref()), Duration::from_secs(seconds as u64));
+            self.model.play_clip_with_transition(self.animations.get(self.animation_name.deref()), Duration::from_secs(seconds as u64));
         }
     }
 
@@ -161,9 +161,8 @@ impl Player {
         // let point_vec = vec3(197.0, 76.143, -3.054);
         let point_vec = vec3(191.04, 79.231, -3.4651); // center of muzzle
 
-        let model = self.model.borrow();
-        let animator = model.animator.borrow();
-        let gun_mesh = model.meshes.iter().find(|m| m.name.as_str() == "Gun").unwrap();
+        let animator = self.model.animator.borrow();
+        let gun_mesh = self.model.meshes.iter().find(|m| m.name.as_str() == "Gun").unwrap();
 
         let final_node_matrices = animator.final_node_matrices.borrow();
 
@@ -187,7 +186,7 @@ impl Player {
 
     pub fn update(&mut self, world: &World, aim_theta: f32) {
         let weight_animations = self.update_animation_weights(self.direction, aim_theta, world.frame_time);
-        self.model.borrow_mut().play_weight_animations(weight_animations.as_slice(), world.frame_time);
+        self.model.play_weight_animations(weight_animations.as_slice(), world.frame_time);
     }
 
     fn update_animation_weights(&mut self, move_vec: Vec2, aim_theta: f32, frame_time: f32) -> [WeightedAnimation; 6] {
