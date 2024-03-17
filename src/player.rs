@@ -12,8 +12,10 @@ use spark_gap::input::Input;
 use spark_gap::model::Model;
 use spark_gap::model_builder::ModelBuilder;
 use spark_gap::texture_config::TextureType;
+use wgpu::{BindGroup, Buffer};
 use winit::event::MouseButton;
 use winit::keyboard::KeyCode;
+use crate::render::buffers::{create_buffer_bind_group, create_mat4_buffer, create_uniform_bind_group_layout, get_or_create_bind_group_layout, TRANSFORM_BIND_GROUP_LAYOUT, update_mat4_buffer};
 
 use crate::world::World;
 
@@ -32,7 +34,8 @@ pub struct Player {
     pub model: Model,
     pub position: Vec3,
     pub direction: Vec2,
-    pub model_transform: Mat4,
+    pub transform_buffer: Buffer,
+    pub transform_bind_group: BindGroup,
     pub speed: f32,
     pub aim_theta: f32,
     pub last_fire_time: f32,
@@ -127,11 +130,16 @@ impl Player {
 
         let animation_name = Rc::from("idle");
 
+        let transform_buffer = create_mat4_buffer(context, &Mat4::IDENTITY, "player transform");
+        let layout = get_or_create_bind_group_layout(context, TRANSFORM_BIND_GROUP_LAYOUT, create_uniform_bind_group_layout);
+        let transform_bind_group = create_buffer_bind_group(context, &layout, &transform_buffer, "player transform bind");
+
         let player = Self {
             model: player_model,
             position: vec3(0.0, 0.0, 0.0),
             direction: vec2(0.0, 0.0),
-            model_transform: Mat4::IDENTITY,
+            transform_buffer,
+            transform_bind_group,
             last_fire_time: 0.0,
             is_trying_to_fire: false,
             is_alive: true,
@@ -180,13 +188,14 @@ impl Player {
         }
     }
 
-    // pub fn render(&self, shader: &Shader) {
-    //     self.model.render(shader);
-    // }
+    pub fn update(&mut self, context: &GpuContext, world: &World, model_transform: &Mat4, aim_theta: f32) {
+        update_mat4_buffer(context, &self.transform_buffer, &model_transform);
 
-    pub fn update(&mut self, world: &World, aim_theta: f32) {
+        self.model.update_animation(world.delta_time);
         let weight_animations = self.update_animation_weights(self.direction, aim_theta, world.frame_time);
         self.model.play_weight_animations(weight_animations.as_slice(), world.frame_time);
+
+        self.model.update_model_buffers(context, &model_transform);
     }
 
     fn update_animation_weights(&mut self, move_vec: Vec2, aim_theta: f32, frame_time: f32) -> [WeightedAnimation; 6] {

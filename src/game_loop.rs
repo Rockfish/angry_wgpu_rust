@@ -24,7 +24,6 @@ use winit::event_loop::EventLoop;
 use winit::keyboard;
 use winit::keyboard::NamedKey::Escape;
 use winit::window::Window;
-// use crate::params::floor_lighting::{FloorLightingHandler, FloorLightingUniform};
 use crate::muzzle_flash::MuzzleFlash;
 use crate::params::shader_params::{ShaderParametersHandler, ShaderParametersUniform};
 use crate::player::Player;
@@ -61,20 +60,6 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
 
     let mut context = GpuContext::new(window).await;
     let mut frame_counter = FrameCounter::new();
-
-    let size = context.window.inner_size();
-
-    let aspect_ratio = size.width as f32 / size.height as f32;
-
-    let mut viewport_width = size.width as f32;
-    let mut viewport_height = size.height as f32;
-    let mut scaled_width = (viewport_width / 1.0) as i32;
-    let mut scaled_height = (viewport_height / 1.0) as i32;
-
-    info!(
-        "initial view port size: {}, {}  scaled size: {}, {}",
-        viewport_width, viewport_height, scaled_width, scaled_height
-    );
 
     // --- Lighting ---
 
@@ -140,13 +125,11 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
 
     let mut player = Player::new(&mut context);
     let floor = Floor::new(&mut context);
-    let mut enemy_system = EnemySystem::new(&mut context);
-    let mut muzzle_flash = MuzzleFlash::new(&mut context, unit_square_quad.clone());
-    let mut bullet_system = BulletSystem::new(&mut context, unit_square_quad.clone());
+    let enemy_system = EnemySystem::new(&mut context);
+    let muzzle_flash = MuzzleFlash::new(&mut context, unit_square_quad.clone());
+    let bullet_system = BulletSystem::new(&mut context, unit_square_quad.clone());
 
     let scene_render = AnimRenderPass::new(&mut context);
-
-    player.model_transform = Mat4::from_translation(vec3(0.0, 0.0, 1.0));
 
     let mut world = World {
         start_instant: Instant::now(),
@@ -154,10 +137,6 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
         frame_time: 0.0,
         first_mouse: false,
         run: true,
-        viewport_width: 0,
-        viewport_height: 0,
-        scaled_width: 0,
-        scaled_height: 0,
         window_scale: (0.0, 0.0),
         key_presses: Default::default(),
         mouse_x: 0.0,
@@ -184,7 +163,6 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
         enemies: vec![],
         burn_marks: BurnMarks::new(&mut context, unit_square_quad.clone()),
         // sound_system: SoundSystem::new(),
-        buffer_ready: false,
     };
 
     event_loop
@@ -196,9 +174,6 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
                         WindowEvent::RedrawRequested => {
                             frame_counter.update();
                             world.update_time();
-
-                            world.camera_controller.update(&world.input, world.delta_time);
-                            world.camera_handler.update_camera(&context, &world.camera_controller);
 
                             game_run(&mut context, &mut world);
 
@@ -233,6 +208,12 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
 }
 
 fn game_run(context: &mut GpuContext, mut world: &mut World) {
+
+    world.handle_input();
+
+    world.camera_controller.update(&world.input, world.delta_time);
+    world.camera_handler.update_camera(&context, &world.camera_controller);
+
     world.player.borrow_mut().handle_input(&world.input, world.delta_time);
 
     world.game_camera.position = world.player.borrow().position + world.camera_follow_vec; // + vec3(world.game_params_handler.uniform.time, 0.0, 0.0);
@@ -276,12 +257,12 @@ fn game_run(context: &mut GpuContext, mut world: &mut World) {
     let mut dz: f32 = 0.0;
     let mut aim_theta = 0.0f32;
 
-    if world.player.borrow().is_alive && world.buffer_ready {
+    if world.player.borrow().is_alive {
         let world_ray = get_world_ray_from_mouse(
             world.mouse_x,
             world.mouse_y,
-            world.scaled_width as f32,
-            world.scaled_height as f32,
+            context.size.width as f32,
+            context.size.height as f32,
             &game_view,
             &world.game_projection,
         );
@@ -289,14 +270,18 @@ fn game_run(context: &mut GpuContext, mut world: &mut World) {
         let xz_plane_point = vec3(0.0, 0.0, 0.0);
         let xz_plane_normal = vec3(0.0, 1.0, 0.0);
 
-        let world_point = ray_plane_intersection(world.game_camera.position, world_ray, xz_plane_point, xz_plane_normal).unwrap();
+        let some_world_point = ray_plane_intersection(world.game_camera.position, world_ray, xz_plane_point, xz_plane_normal);
 
-        dx = world_point.x - world.player.borrow().position.x;
-        dz = world_point.z - world.player.borrow().position.z;
-        aim_theta = (dx / dz).atan() + if dz < 0.0 { PI } else { 0.0 };
+        if let Some(world_point) = some_world_point {
+            dx = world_point.x - world.player.borrow().position.x;
+            dz = world_point.z - world.player.borrow().position.z;
+            aim_theta = (dx / dz).atan() + if dz < 0.0 { PI } else { 0.0 };
 
-        if world.mouse_x.abs() < 0.005 && world.mouse_y.abs() < 0.005 {
-            aim_theta = 0.0;
+            if world.mouse_x.abs() < 0.005 && world.mouse_y.abs() < 0.005 {
+                aim_theta = 0.0;
+            }
+
+            println!("aim_theta: {}", aim_theta);
         }
     }
 
@@ -317,8 +302,6 @@ fn game_run(context: &mut GpuContext, mut world: &mut World) {
         }
     }
 
-    world.player.borrow_mut().model_transform = player_transform;
-
     world.muzzle_flash.borrow_mut().update(context, world.delta_time, &muzzle_transform);
 
     // world.bullet_system.borrow_mut().update_bullets(&mut world);
@@ -332,7 +315,6 @@ fn game_run(context: &mut GpuContext, mut world: &mut World) {
         enemy_system.borrow_mut().update(context, &mut world);
         enemy_system.borrow_mut().chase_player(&mut world);
     }
-
 
     let mut use_point_light = false;
     let mut muzzle_world_position = Vec3::default();
@@ -366,12 +348,7 @@ fn game_run(context: &mut GpuContext, mut world: &mut World) {
     world.shader_params.set_time(world.frame_time);
     world.shader_params.update_buffer(context);
 
-    world.player.borrow().model.update_animation(world.delta_time);
-    world.player.borrow_mut().update(&world, aim_theta);
-
-    // world.floor.borrow().draw(&context, &projection_view);
+    world.player.borrow_mut().update(context, &world, &player_transform, aim_theta);
 
     world.scene_render.borrow_mut().render(&context, &world);
-
-    // world.buffer_ready = true;
 }

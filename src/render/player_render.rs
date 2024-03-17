@@ -9,6 +9,7 @@ use wgpu::{IndexFormat, RenderPass, RenderPipeline};
 use crate::load_shader;
 use crate::params::shader_params::SHADER_PARAMETERS_BIND_GROUP_LAYOUT;
 use crate::player::Player;
+use crate::render::buffers::TRANSFORM_BIND_GROUP_LAYOUT;
 use crate::world::World;
 
 pub fn render_player<'a>(
@@ -18,11 +19,10 @@ pub fn render_player<'a>(
     player: &'a Player,
 ) -> RenderPass<'a> {
 
-    player.model.update_model_buffers(context, &player.model_transform);
-
     render_pass.set_bind_group(0, &world.camera_handler.bind_group, &[]);
-    render_pass.set_bind_group(1, &player.model.bind_group, &[]);
-    render_pass.set_bind_group(2, &world.shader_params.bind_group, &[]);
+    render_pass.set_bind_group(1, &player.transform_bind_group, &[]);
+    render_pass.set_bind_group(2, &player.model.bind_group, &[]);
+    render_pass.set_bind_group(3, &world.shader_params.bind_group, &[]);
 
     for mesh in player.model.meshes.iter() {
         player.model.update_mesh_buffers(context, &mesh);
@@ -32,10 +32,10 @@ pub fn render_player<'a>(
         let emissive_bind_group = player.model.get_material_bind_group(&mesh, TextureType::Emissive);
         // let shadow_map_bind_group = model.get_material_bind_group(&mesh, TextureType::Diffuse); // shadow
 
-        render_pass.set_bind_group(3, diffuse_bind_group, &[]);
-        render_pass.set_bind_group(4, specular_bind_group, &[]);
-        render_pass.set_bind_group(5, emissive_bind_group, &[]);
-        // render_pass.set_bind_group(6, shadow_map_bind_group, &[]);
+        render_pass.set_bind_group(4, diffuse_bind_group, &[]);
+        render_pass.set_bind_group(5, specular_bind_group, &[]);
+        render_pass.set_bind_group(6, emissive_bind_group, &[]);
+        // render_pass.set_bind_group(7, shadow_map_bind_group, &[]);
 
         render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
         render_pass.set_index_buffer(mesh.index_buffer.slice(..), IndexFormat::Uint32);
@@ -47,7 +47,8 @@ pub fn render_player<'a>(
 
 pub fn create_player_shader_pipeline(context: &GpuContext) -> RenderPipeline {
     let camera_bind_group_layout = context.bind_layout_cache.get(CAMERA_BIND_GROUP_LAYOUT).unwrap();
-    let model_bind_group_layout = context.bind_layout_cache.get(MODEL_BIND_GROUP_LAYOUT).unwrap();
+    let transform_bind_group_layout = context.bind_layout_cache.get(TRANSFORM_BIND_GROUP_LAYOUT).unwrap();
+    let animation_bind_group_layout = context.bind_layout_cache.get(MODEL_BIND_GROUP_LAYOUT).unwrap();
     let params_bind_group_layout = context.bind_layout_cache.get(SHADER_PARAMETERS_BIND_GROUP_LAYOUT).unwrap();
     let material_bind_group_layout = context.bind_layout_cache.get(MATERIAL_BIND_GROUP_LAYOUT).unwrap();
 
@@ -55,7 +56,8 @@ pub fn create_player_shader_pipeline(context: &GpuContext) -> RenderPipeline {
         label: Some("Render Pipeline Layout"),
         bind_group_layouts: &[
             camera_bind_group_layout,
-            model_bind_group_layout,
+            transform_bind_group_layout,
+            animation_bind_group_layout,
             params_bind_group_layout,
             material_bind_group_layout, // diffuse
             material_bind_group_layout, // specular

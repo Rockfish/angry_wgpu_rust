@@ -52,12 +52,7 @@ pub struct World {
     pub camera_controller: FlyCameraController,
     pub camera_handler: CameraHandler,
     pub camera_follow_vec: Vec3,
-    // pub depth_texture_view: TextureView,
     pub run: bool,
-    pub viewport_width: i32,
-    pub viewport_height: i32,
-    pub scaled_width: i32,
-    pub scaled_height: i32,
     pub window_scale: (f32, f32),
     pub key_presses: HashSet<Key>,
     pub game_camera: Camera,
@@ -84,7 +79,6 @@ pub struct World {
     pub enemies: Vec<Enemy>,
     pub burn_marks: BurnMarks,
     // pub sound_system: SoundSystem,
-    pub buffer_ready: bool,
     pub light_direction: Vec3,
 }
 
@@ -97,6 +91,12 @@ impl World {
             self.delta_time = 0.0;
         }
         self.frame_time = current_time;
-        // println!("current_time: {:?}", current_time);
+    }
+
+    pub fn handle_input(&mut self) {
+        if let Some(mouse_position) = self.input.mouse_position {
+            self.mouse_x = mouse_position.x;
+            self.mouse_y = mouse_position.y;
+        }
     }
 }

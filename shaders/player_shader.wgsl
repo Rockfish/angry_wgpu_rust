@@ -8,25 +8,27 @@
 
 // model transforms
 @group(1) @binding(0) var<uniform> model_transform: mat4x4<f32>;
-@group(1) @binding(1) var<uniform> node_transform: mat4x4<f32>;
-@group(1) @binding(2) var<uniform> bone_transforms: array<mat4x4<f32>, MAX_BONES>;
-//@group(1) @binding(0) var<uniform> model_transforms: ModelTransforms;
+
+// animation transforms
+@group(2) @binding(0) var<uniform> noused_transform: mat4x4<f32>;
+@group(2) @binding(1) var<uniform> node_transform: mat4x4<f32>;
+@group(2) @binding(2) var<uniform> bone_transforms: array<mat4x4<f32>, MAX_BONES>;
 
 // game and lighting
-@group(2) @binding(0) var<uniform> params: ShaderParameters;
+@group(3) @binding(0) var<uniform> params: ShaderParameters;
 
 // material information
-@group(3) @binding(0) var diffuse_texture: texture_2d<f32>;
-@group(3) @binding(1) var diffuse_sampler: sampler;
+@group(4) @binding(0) var diffuse_texture: texture_2d<f32>;
+@group(4) @binding(1) var diffuse_sampler: sampler;
 
-@group(4) @binding(0) var specular_texture: texture_2d<f32>;
-@group(4) @binding(1) var specular_sampler: sampler;
+@group(5) @binding(0) var specular_texture: texture_2d<f32>;
+@group(5) @binding(1) var specular_sampler: sampler;
 
-@group(5) @binding(0) var emissive_texture: texture_2d<f32>;
-@group(5) @binding(1) var emissive_sampler: sampler;
+@group(6) @binding(0) var emissive_texture: texture_2d<f32>;
+@group(6) @binding(1) var emissive_sampler: sampler;
 
-//@group(6) @binding(0) var shadow_map_texture: texture_2d<f32>;
-//@group(6) @binding(1) var shadow_map_sampler: sampler;
+//@group(7) @binding(0) var shadow_map_texture: texture_2d<f32>;
+//@group(7) @binding(1) var shadow_map_sampler: sampler;
 
 
 // Vertex shader section
