@@ -49,7 +49,7 @@ impl EnemySystem {
         let enemy_model = ModelBuilder::new("enemy", "assets/Models/Eeldog/EelDog.FBX").build(context).unwrap();
 
         let mut instance_indexes = vec![0_u32; MAX_ENEMIES];
-        let instances_index_buffer = create_vertex_buffer(context, instance_indexes.as_slice(), "instances uniform indexes vec");
+        let instances_index_buffer = create_vertex_buffer(context, instance_indexes.as_slice(), "enemy instance indexes");
         instance_indexes.clear();
 
         let mut instances_uniforms = (0..MAX_ENEMIES).map(|_|
@@ -172,52 +172,38 @@ impl EnemySystem {
     // pub fn instance_description()
 }
 
-pub fn enemy_instance_index_description() -> wgpu::VertexBufferLayout<'static> {
-    use std::mem;
-    wgpu::VertexBufferLayout {
-        array_stride: mem::size_of::<u32>() as wgpu::BufferAddress,
-        step_mode: wgpu::VertexStepMode::Instance,
-        attributes: &[
-            wgpu::VertexAttribute {
-                offset: 0,
-                shader_location: 7,
-                format: wgpu::VertexFormat::Uint32,
-            },
-        ],
-    }
-}
 
-fn create_enemy_instances_bind_group_layout(context: &GpuContext) -> BindGroupLayout {
-    context.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        entries: &[
-            wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: wgpu::BufferSize::new((MAX_ENEMIES * 16 * 2) as _),
-                },
-                count: None,
-            },
-        ],
-        label: Some("enemy instances bind group layout"),
-    })
-}
+// fn create_enemy_instances_bind_group_layout(context: &GpuContext) -> BindGroupLayout {
+//     context.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+//         entries: &[
+//             wgpu::BindGroupLayoutEntry {
+//                 binding: 0,
+//                 visibility: wgpu::ShaderStages::VERTEX,
+//                 ty: wgpu::BindingType::Buffer {
+//                     ty: wgpu::BufferBindingType::Uniform,
+//                     has_dynamic_offset: false,
+//                     min_binding_size: wgpu::BufferSize::new((MAX_ENEMIES * 16 * 2) as _),
+//                 },
+//                 count: None,
+//             },
+//         ],
+//         label: Some("enemy instances bind group layout"),
+//     })
+// }
 
-fn create_enemy_instances_bind_group(
-    context: &GpuContext,
-    bind_group_layout: &BindGroupLayout,
-    enemy_instances: &Buffer,
-) -> BindGroup {
-    context.device.create_bind_group(&wgpu::BindGroupDescriptor {
-        layout: bind_group_layout,
-        entries: &[
-            wgpu::BindGroupEntry {
-                binding: 2,
-                resource: enemy_instances.as_entire_binding(),
-            },
-        ],
-        label: Some("enemy instances bind group"),
-    })
-}
+// fn create_enemy_instances_bind_group(
+//     context: &GpuContext,
+//     bind_group_layout: &BindGroupLayout,
+//     enemy_instances: &Buffer,
+// ) -> BindGroup {
+//     context.device.create_bind_group(&wgpu::BindGroupDescriptor {
+//         layout: bind_group_layout,
+//         entries: &[
+//             wgpu::BindGroupEntry {
+//                 binding: 2,
+//                 resource: enemy_instances.as_entire_binding(),
+//             },
+//         ],
+//         label: Some("enemy instances bind group"),
+//     })
+// }

@@ -1,17 +1,15 @@
-use std::f32::consts::PI;
-use glam::{Mat4, vec3};
 use spark_gap::camera::camera_handler::CAMERA_BIND_GROUP_LAYOUT;
 use spark_gap::gpu_context::GpuContext;
 use spark_gap::material::MATERIAL_BIND_GROUP_LAYOUT;
-use spark_gap::model::Model;
 use spark_gap::model_builder::MODEL_BIND_GROUP_LAYOUT;
 use spark_gap::model_mesh::ModelVertex;
 use spark_gap::texture_config::TextureType;
 use wgpu::{IndexFormat, RenderPass, RenderPipeline};
 
-use crate::enemy::{enemy_instance_index_description, ENEMY_INSTANCES_BIND_GROUP_LAYOUT, EnemySystem};
+use crate::enemy::{ENEMY_INSTANCES_BIND_GROUP_LAYOUT, EnemySystem};
 use crate::load_shader;
 use crate::params::shader_params::SHADER_PARAMETERS_BIND_GROUP_LAYOUT;
+use crate::render::buffers::instance_index_description;
 use crate::world::World;
 
 pub fn create_enemy_shader_pipeline(context: &GpuContext) -> RenderPipeline {
@@ -49,7 +47,7 @@ pub fn create_enemy_shader_pipeline(context: &GpuContext) -> RenderPipeline {
             entry_point: "vs_main",
             buffers: &[
                 ModelVertex::vertex_description(),
-                enemy_instance_index_description(),
+                instance_index_description(),
             ],
         },
         fragment: Some(wgpu::FragmentState {

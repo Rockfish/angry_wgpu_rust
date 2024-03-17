@@ -11,6 +11,7 @@ pub mod floor_render;
 pub mod main_render;
 pub mod player_render;
 mod sprite_render;
+mod bullet_render;
 
 fn try_every_shader_file(composer: &mut Composer, for_shader: &str, shader_dir: &str, max_iters: usize) -> anyhow::Result<()> {
     let mut try_again = true;

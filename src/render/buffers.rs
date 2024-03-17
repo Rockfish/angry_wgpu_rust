@@ -113,3 +113,18 @@ pub fn create_buffer_bind_group(context: &GpuContext, bind_group_layout: &BindGr
         label: Some(label),
     })
 }
+
+pub fn instance_index_description() -> wgpu::VertexBufferLayout<'static> {
+    use std::mem;
+    wgpu::VertexBufferLayout {
+        array_stride: mem::size_of::<u32>() as wgpu::BufferAddress,
+        step_mode: wgpu::VertexStepMode::Instance,
+        attributes: &[
+            wgpu::VertexAttribute {
+                offset: 0,
+                shader_location: 7,
+                format: wgpu::VertexFormat::Uint32,
+            },
+        ],
+    }
+}

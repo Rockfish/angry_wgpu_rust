@@ -24,6 +24,7 @@ use crate::sound_system::SoundSystem;
 pub const FIRE_INTERVAL: f32 = 0.1;
 // seconds
 pub const SPREAD_AMOUNT: i32 = 20;
+pub const MAX_BULLET_GROUPS: i32 = 10;
 
 pub const PLAYER_COLLISION_RADIUS: f32 = 0.35;
 

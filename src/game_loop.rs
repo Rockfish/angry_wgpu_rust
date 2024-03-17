@@ -304,8 +304,6 @@ fn game_run(context: &mut GpuContext, mut world: &mut World) {
 
     world.muzzle_flash.borrow_mut().update(context, world.delta_time, &muzzle_transform);
 
-    // world.bullet_system.borrow_mut().update_bullets(&mut world);
-
     let bullet_system = world.bullet_system.clone();
     let enemy_system = world.enemy_system.clone();
 

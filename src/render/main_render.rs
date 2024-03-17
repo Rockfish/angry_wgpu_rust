@@ -1,12 +1,12 @@
+use spark_gap::gpu_context::GpuContext;
+use wgpu::{RenderPipeline, TextureView};
+use crate::render::bullet_render::{create_bullet_shader_pipeline, render_bullets};
+
 use crate::render::enemy_render::{create_enemy_shader_pipeline, render_enemy_model};
 use crate::render::floor_render::{create_floor_shader_pipeline, render_floor};
 use crate::render::player_render::{create_player_shader_pipeline, render_player};
 use crate::render::sprite_render::{create_sprite_shader_pipeline, render_muzzle_flashes};
 use crate::world::World;
-use glam::{vec3, Mat4, Vec3};
-use spark_gap::gpu_context::GpuContext;
-use std::f32::consts::PI;
-use wgpu::{RenderPipeline, TextureView};
 
 pub const BACKGROUND_COLOR: wgpu::Color = wgpu::Color {
     r: 0.1,
@@ -20,6 +20,7 @@ pub struct AnimRenderPass {
     floor_shader_pipeline: RenderPipeline,
     enemy_shader_pipeline: RenderPipeline,
     sprite_shader_pipeline: RenderPipeline,
+    bullet_shader_pipeline: RenderPipeline,
     pub depth_texture_view: TextureView,
 }
 
@@ -29,6 +30,7 @@ impl AnimRenderPass {
         let floor_shader_pipeline = create_floor_shader_pipeline(context);
         let enemy_shader_pipeline = create_enemy_shader_pipeline(context);
         let sprite_shader_pipeline = create_sprite_shader_pipeline(context);
+        let bullet_shader_pipeline = create_bullet_shader_pipeline(context);
 
         let depth_texture_view = create_depth_texture_view(&context);
 
@@ -37,6 +39,7 @@ impl AnimRenderPass {
             floor_shader_pipeline,
             enemy_shader_pipeline,
             sprite_shader_pipeline,
+            bullet_shader_pipeline,
             depth_texture_view,
         }
     }
@@ -84,6 +87,7 @@ impl AnimRenderPass {
         let player = &world.player.borrow();
         let flashes = &world.muzzle_flash.borrow();
         let enemy_system = &world.enemy_system.borrow();
+        let bullet_system = &world.bullet_system.borrow();
 
         {
             let mut render_pass = encoder.begin_render_pass(&pass_description);
@@ -99,6 +103,10 @@ impl AnimRenderPass {
             // muzzle flashes
             render_pass.set_pipeline(&self.sprite_shader_pipeline);
             render_pass = render_muzzle_flashes(world, render_pass, flashes);
+
+            // bullets
+            render_pass.set_pipeline(&self.bullet_shader_pipeline);
+            render_pass = render_bullets(world, render_pass, bullet_system);
 
             // enemies
             render_pass.set_pipeline(&self.enemy_shader_pipeline);

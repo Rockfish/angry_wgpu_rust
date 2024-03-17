@@ -5,7 +5,7 @@
 
 const MAX_ENEMIES = 100;
 
-// age vec
+// instance index into enemy_uniforms array
 struct InstanceInput {
     @location(7) index: u32,
 }

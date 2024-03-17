@@ -1,17 +1,22 @@
-use crate::aabb::Aabb;
-// use crate::enemy::{Enemy, ENEMY_COLLIDER};
-use crate::capsule::Capsule;
-use crate::enemy::{Enemy, ENEMY_COLLIDER};
-use crate::geom::{distance_between_line_segments, oriented_angle};
-use crate::small_mesh::SmallMesh;
-use crate::sprite_sheet::{SpriteSheet, SpriteSheetSprite};
-use crate::world::World;
-use glam::{vec3, vec4, Mat4, Quat, Vec3, Vec4Swizzles};
+use std::f32::consts::PI;
+
+use glam::{Mat4, Quat, vec3, Vec3, vec4, Vec4Swizzles};
 use spark_gap::gpu_context::GpuContext;
 use spark_gap::material::Material;
 use spark_gap::texture_config::{TextureConfig, TextureFilter, TextureType, TextureWrap};
-use spark_gap::{SIZE_OF_QUAT, SIZE_OF_VEC3};
-use std::f32::consts::PI;
+use wgpu::{BindGroup, Buffer};
+
+use crate::aabb::Aabb;
+use crate::capsule::Capsule;
+use crate::enemy::{Enemy, ENEMY_COLLIDER};
+use crate::geom::{distance_between_line_segments, oriented_angle};
+use crate::render::buffers::{create_buffer_bind_group, create_uniform_bind_group_layout, create_uniform_buffer, create_vertex_buffer, get_or_create_bind_group_layout, update_uniform_buffer};
+use crate::small_mesh::SmallMesh;
+use crate::sprite_sheet::{SpriteSheet, SpriteSheetSprite};
+use crate::world::{MAX_BULLET_GROUPS, SPREAD_AMOUNT, World};
+
+pub const BULLET_POSITIONS_BIND_GROUP_LAYOUT: &str = "bullet positions bind group layout";
+pub const BULLET_ROTATIONS_BIND_GROUP_LAYOUT: &str = "bullet rotations bind group layout";
 
 pub struct BulletGroup {
     start_index: usize,
@@ -33,15 +38,20 @@ pub struct BulletSystem {
     all_bullet_positions: Vec<Vec3>,
     all_bullet_rotations: Vec<Quat>,
     all_bullet_directions: Vec<Vec3>,
-    // thread_pool
-    // bullet_vao: GLuint,
-    // rotation_vbo: GLuint,
-    // offset_vbo: GLuint,
     bullet_groups: Vec<BulletGroup>,
-    bullet_material: Material,
-    bullet_impact_spritesheet: SpriteSheet,
-    bullet_impact_sprites: Vec<SpriteSheetSprite>,
-    unit_square: SmallMesh,
+
+    pub bullet_mesh: SmallMesh,
+    pub bullet_material: Material,
+
+    pub impact_spritesheet: SpriteSheet,
+    pub impact_sprites: Vec<SpriteSheetSprite>,
+
+    pub instance_indexes: Vec<u32>,
+    pub instances_index_buffer: Buffer,
+    pub bullet_positions_buffer: Buffer,
+    pub bullet_positions_bind_group: BindGroup,
+    pub bullet_rotations_buffer: Buffer,
+    pub bullet_rotations_bind_group: BindGroup,
 }
 
 // const BULLET_SCALE: f32 = 0.3;
@@ -60,6 +70,8 @@ const CANONICAL_DIR: Vec3 = vec3(0.0, 0.0, 1.0);
 const BULLET_COLLIDER: Capsule = Capsule { height: 0.3, radius: 0.03 };
 
 const BULLET_ENEMY_MAX_COLLISION_DIST: f32 = BULLET_COLLIDER.height / 2.0 + BULLET_COLLIDER.radius + ENEMY_COLLIDER.height / 2.0 + ENEMY_COLLIDER.radius;
+
+const MAX_BULLETS: usize = (SPREAD_AMOUNT * SPREAD_AMOUNT * MAX_BULLET_GROUPS) as usize;
 
 // Trim off margin around the bullet image
 // const TEXTURE_MARGIN: f32 = 0.0625;
@@ -112,7 +124,7 @@ const BULLET_INDICES_H_V: [i32; 12] = [
 ];
 
 impl BulletSystem {
-    pub fn new(context: &mut GpuContext, unit_square: SmallMesh) -> Self {
+    pub fn new(context: &mut GpuContext, bullet_mesh: SmallMesh) -> Self {
         // initialize_buffer_and_create
         // let mut bullet_vao: GLuint = 0;
         // let mut bullet_vertices_vbo: GLuint = 0;
@@ -137,84 +149,46 @@ impl BulletSystem {
         let vertices = BULLET_VERTICES_H_V;
         let indices = BULLET_INDICES_H_V;
 
-        /*
-        unsafe {
-            gl::GenVertexArrays(1, &mut bullet_vao);
-
-            gl::GenBuffers(1, &mut bullet_vertices_vbo);
-            gl::GenBuffers(1, &mut bullet_indices_ebo);
-
-            gl::BindVertexArray(bullet_vao);
-            gl::BindBuffer(gl::ARRAY_BUFFER, bullet_vertices_vbo);
-
-            // vertices data
-            gl::BufferData(
-                gl::ARRAY_BUFFER,
-                (vertices.len() * SIZE_OF_FLOAT) as GLsizeiptr,
-                vertices.as_ptr() as *const GLvoid,
-                gl::STATIC_DRAW,
-            );
-
-            // indices data
-            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, bullet_indices_ebo);
-            gl::BufferData(
-                gl::ELEMENT_ARRAY_BUFFER,
-                (indices.len() * SIZE_OF_FLOAT) as GLsizeiptr,
-                indices.as_ptr() as *const GLvoid,
-                gl::STATIC_DRAW,
-            );
-
-            // location 0: vertex positions
-            gl::EnableVertexAttribArray(0);
-            gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, (5 * SIZE_OF_FLOAT) as GLsizei, std::ptr::null::<GLvoid>());
-
-            // location 1: texture coordinates
-            gl::EnableVertexAttribArray(1);
-            gl::VertexAttribPointer(1, 2, gl::FLOAT, gl::FALSE, (5 * SIZE_OF_FLOAT) as GLsizei, (3 * SIZE_OF_FLOAT) as *const GLvoid);
-
-            // Per instance data
-
-            // per instance rotation vbo
-            gl::GenBuffers(1, &mut instance_rotation_vbo);
-            gl::BindBuffer(gl::ARRAY_BUFFER, instance_rotation_vbo);
-
-            // location: 2: bullet rotations
-            gl::EnableVertexAttribArray(2);
-            gl::VertexAttribPointer(2, 4, gl::FLOAT, gl::FALSE, SIZE_OF_QUAT as GLsizei, std::ptr::null::<GLvoid>());
-            gl::VertexAttribDivisor(2, 1); // one rotation per bullet instance
-
-            // per instance position offset vbo
-            gl::GenBuffers(1, &mut instance_offset_vbo);
-            gl::BindBuffer(gl::ARRAY_BUFFER, instance_offset_vbo);
-
-            // location: 3: bullet position offsets
-            gl::EnableVertexAttribArray(3);
-            gl::VertexAttribPointer(3, 3, gl::FLOAT, gl::FALSE, SIZE_OF_VEC3 as GLsizei, std::ptr::null::<GLvoid>());
-            gl::VertexAttribDivisor(3, 1); // one offset per bullet instance
-        }
-         */
-
         let impact_sprite_sheet_material = Material::new(context, "angrygl_assets/bullet/impact_spritesheet_with_00.png", &texture_config).unwrap();
-        let bullet_impact_spritesheet = SpriteSheet::new(context, impact_sprite_sheet_material, 11.0, 0.05);
+        let impact_spritesheet = SpriteSheet::new(context, impact_sprite_sheet_material, 11.0, 0.05);
+
+        let instance_indexes = (0..MAX_BULLETS).map(|i| i as u32).collect::<Vec<u32>>();
+        let instances_index_buffer = create_vertex_buffer(context, instance_indexes.as_slice(), "bullet instance indexes");
+
+        let mut all_bullet_positions = (0..MAX_BULLETS).map(|_| Vec3::ZERO).collect::<Vec<Vec3>>();
+        let bullet_positions_buffer = create_uniform_buffer(context, all_bullet_positions.as_slice(), "bullet positions buffer");
+        let layout = get_or_create_bind_group_layout(context, BULLET_POSITIONS_BIND_GROUP_LAYOUT, create_uniform_bind_group_layout);
+        let bullet_positions_bind_group = create_buffer_bind_group(context, &layout, &bullet_positions_buffer, "bullet positions bind group");
+
+        let mut all_bullet_rotations = (0..MAX_BULLETS).map(|_| Quat::IDENTITY).collect::<Vec<Quat>>();
+        let bullet_rotations_buffer = create_uniform_buffer(context, all_bullet_rotations.as_slice(), "bullet rotations buffer");
+        let layout = get_or_create_bind_group_layout(context, BULLET_ROTATIONS_BIND_GROUP_LAYOUT, create_uniform_bind_group_layout);
+        let bullet_rotations_bind_group = create_buffer_bind_group(context, &layout, &bullet_rotations_buffer, "bullet rotations bind group");
+
+        all_bullet_positions.clear();
+        all_bullet_rotations.clear();
 
         Self {
-            all_bullet_positions: Default::default(),
-            all_bullet_rotations: Default::default(),
+            all_bullet_positions,
+            all_bullet_rotations,
             all_bullet_directions: Default::default(),
-            // bullet_vao,
-            // rotation_vbo: instance_rotation_vbo,
-            // offset_vbo: instance_offset_vbo,
             bullet_groups: vec![],
             bullet_material,
-            bullet_impact_spritesheet,
-            bullet_impact_sprites: vec![],
-            unit_square,
+            impact_spritesheet,
+            impact_sprites: vec![],
+            bullet_mesh,
+            instance_indexes,
+            instances_index_buffer,
+            bullet_positions_buffer,
+            bullet_positions_bind_group,
+            bullet_rotations_buffer,
+            bullet_rotations_bind_group,
         }
     }
 
     pub fn create_bullets(&mut self, dx: f32, dz: f32, muzzle_transform: &Mat4, spread_amount: i32) -> bool {
         // limit number of bullet groups
-        if self.bullet_groups.len() > 9 {
+        if self.bullet_groups.len() >= MAX_BULLET_GROUPS as usize {
             return false;
         }
         // let spreadAmount = 100;
@@ -370,24 +344,25 @@ impl BulletSystem {
             }
         }
 
-        if !self.bullet_impact_sprites.is_empty() {
-            for sheet in self.bullet_impact_sprites.iter_mut() {
+        if !self.impact_sprites.is_empty() {
+            for sheet in self.impact_sprites.iter_mut() {
                 sheet.age += &world.delta_time;
             }
-            let sprite_duration = self.bullet_impact_spritesheet.uniform.num_columns as f32 * self.bullet_impact_spritesheet.uniform.time_per_sprite;
+            let sprite_duration = self.impact_spritesheet.uniform.num_columns as f32 * self.impact_spritesheet.uniform.time_per_sprite;
 
-            self.bullet_impact_sprites.retain(|sprite| sprite.age < sprite_duration);
+            self.impact_sprites.retain(|sprite| sprite.age < sprite_duration);
         }
 
         for enemy in world.enemies.iter() {
             if !enemy.is_alive {
-                self.bullet_impact_sprites.push(SpriteSheetSprite::new(enemy.position));
+                self.impact_sprites.push(SpriteSheetSprite::new(enemy.position));
                 world.burn_marks.add_mark(enemy.position);
                 // world.sound_system.play_enemy_destroyed();
             }
         }
 
-        // world.enemies.retain(|e| e.is_alive);
+        update_uniform_buffer(context, &self.bullet_positions_buffer, &self.all_bullet_positions.as_slice());
+        update_uniform_buffer(context, &self.bullet_rotations_buffer, &self.all_bullet_rotations.as_slice());
     }
 
     pub fn draw_bullets(&mut self, projection_view: &Mat4) {
@@ -470,7 +445,7 @@ impl BulletSystem {
 
         let scale = 2.0f32; // 0.25f32;
 
-        for sprite in &self.bullet_impact_sprites {
+        for sprite in &self.impact_sprites {
             let mut model = Mat4::from_translation(sprite.world_position);
             model *= Mat4::from_rotation_x(-90.0f32.to_radians());
 
@@ -558,8 +533,9 @@ fn hamilton_product_quat_quat(first: Quat, other: &Quat) -> Quat {
 
 #[cfg(test)]
 mod tests {
-    use crate::geom::oriented_angle;
     use glam::vec3;
+
+    use crate::geom::oriented_angle;
 
     #[test]
     fn test_oriented_rotation() {
