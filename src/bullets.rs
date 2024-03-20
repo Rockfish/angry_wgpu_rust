@@ -4,19 +4,17 @@ use glam::{Mat4, Quat, vec3, Vec3, vec4, Vec4Swizzles};
 use spark_gap::gpu_context::GpuContext;
 use spark_gap::material::Material;
 use spark_gap::texture_config::{TextureConfig, TextureFilter, TextureType, TextureWrap};
-use wgpu::{BindGroup, Buffer};
+use wgpu::Buffer;
+use wgpu::util::DeviceExt;
 
 use crate::aabb::Aabb;
 use crate::capsule::Capsule;
 use crate::enemy::{Enemy, ENEMY_COLLIDER};
 use crate::geom::{distance_between_line_segments, oriented_angle};
-use crate::render::buffers::{create_buffer_bind_group, create_uniform_bind_group_layout, create_uniform_buffer, create_vertex_buffer, get_or_create_bind_group_layout, update_uniform_buffer};
+use crate::render::buffers::{create_vertex_buffer, update_uniform_buffer};
 use crate::small_mesh::SmallMesh;
 use crate::sprite_sheet::{SpriteSheet, SpriteSheetSprite};
 use crate::world::{MAX_BULLET_GROUPS, SPREAD_AMOUNT, World};
-
-pub const BULLET_POSITIONS_BIND_GROUP_LAYOUT: &str = "bullet positions bind group layout";
-pub const BULLET_ROTATIONS_BIND_GROUP_LAYOUT: &str = "bullet rotations bind group layout";
 
 pub struct BulletGroup {
     start_index: usize,
@@ -35,30 +33,34 @@ impl BulletGroup {
 }
 
 pub struct BulletSystem {
-    all_bullet_positions: Vec<Vec3>,
-    all_bullet_rotations: Vec<Quat>,
-    all_bullet_directions: Vec<Vec3>,
-    bullet_groups: Vec<BulletGroup>,
+    pub bullet_positions: Vec<Vec3>,
+    pub bullet_rotations: Vec<Quat>,
+    pub bullet_directions: Vec<Vec3>,
+    pub bullet_groups: Vec<BulletGroup>,
 
-    pub bullet_mesh: SmallMesh,
+    // fixed size calculation vecs
+    x_rotations: Vec<Quat>,
+    y_rotations: Vec<Quat>,
+
+    pub impact_mesh: SmallMesh,
     pub bullet_material: Material,
 
     pub impact_spritesheet: SpriteSheet,
     pub impact_sprites: Vec<SpriteSheetSprite>,
 
-    pub instance_indexes: Vec<u32>,
-    pub instances_index_buffer: Buffer,
+    pub vertex_buffer: Buffer,
+    pub index_buffer: Buffer,
+
     pub bullet_positions_buffer: Buffer,
-    pub bullet_positions_bind_group: BindGroup,
     pub bullet_rotations_buffer: Buffer,
-    pub bullet_rotations_bind_group: BindGroup,
 }
 
 // const BULLET_SCALE: f32 = 0.3;
 const BULLET_SCALE: f32 = 0.3;
 const BULLET_LIFETIME: f32 = 1.0;
 // seconds
-const BULLET_SPEED: f32 = 15.0;
+// const BULLET_SPEED: f32 = 15.0;
+const BULLET_SPEED: f32 = 5.0;
 // const BULLET_SPEED: f32 = 1.0;
 // Game units per second
 const ROTATION_PER_BULLET: f32 = 3.0 * PI / 180.0;
@@ -98,7 +100,7 @@ const BULLET_VERTICES_V: [f32; 20] = [
 
 #[rustfmt::skip]
 const BULLET_VERTICES_H_V: [f32; 40] = [
-    // Positions                                        // Tex Coords
+    // Positions                                          // Tex Coords
     BULLET_SCALE * (-0.243), 0.0, BULLET_SCALE * (-1.0),  1.0 - TEXTURE_MARGIN, 0.0 + TEXTURE_MARGIN,
     BULLET_SCALE * (-0.243), 0.0, BULLET_SCALE * 0.0,     0.0 + TEXTURE_MARGIN, 0.0 + TEXTURE_MARGIN,
     BULLET_SCALE * 0.243,    0.0, BULLET_SCALE * 0.0,     0.0 + TEXTURE_MARGIN, 1.0 - TEXTURE_MARGIN,
@@ -116,7 +118,7 @@ const BULLET_INDICES: [i32; 6] = [
 ];
 
 #[rustfmt::skip]
-const BULLET_INDICES_H_V: [i32; 12] = [
+const BULLET_INDICES_H_V: [u32; 12] = [
     0, 1, 2,
     0, 2, 3,
     4, 5, 6,
@@ -124,14 +126,7 @@ const BULLET_INDICES_H_V: [i32; 12] = [
 ];
 
 impl BulletSystem {
-    pub fn new(context: &mut GpuContext, bullet_mesh: SmallMesh) -> Self {
-        // initialize_buffer_and_create
-        // let mut bullet_vao: GLuint = 0;
-        // let mut bullet_vertices_vbo: GLuint = 0;
-        // let mut bullet_indices_ebo: GLuint = 0;
-
-        // let mut instance_rotation_vbo: GLuint = 0;
-        // let mut instance_offset_vbo: GLuint = 0;
+    pub fn new(context: &mut GpuContext, impact_mesh: SmallMesh) -> Self {
 
         let texture_config = TextureConfig {
             flip_v: false,
@@ -149,40 +144,63 @@ impl BulletSystem {
         let vertices = BULLET_VERTICES_H_V;
         let indices = BULLET_INDICES_H_V;
 
+        let vertex_buffer = context.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("bullet mesh vertex buffer"),
+            contents: bytemuck::cast_slice(&vertices),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+
+        let index_buffer = context.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("bullet mesh index buffer"),
+            contents: bytemuck::cast_slice(&indices),
+            usage: wgpu::BufferUsages::INDEX,
+        });
+
         let impact_sprite_sheet_material = Material::new(context, "angrygl_assets/bullet/impact_spritesheet_with_00.png", &texture_config).unwrap();
         let impact_spritesheet = SpriteSheet::new(context, impact_sprite_sheet_material, 11.0, 0.05);
 
-        let instance_indexes = (0..MAX_BULLETS).map(|i| i as u32).collect::<Vec<u32>>();
-        let instances_index_buffer = create_vertex_buffer(context, instance_indexes.as_slice(), "bullet instance indexes");
+        let mut bullet_positions = (0..MAX_BULLETS).map(|_| Vec3::ZERO).collect::<Vec<Vec3>>();
+        let bullet_positions_buffer = create_vertex_buffer(context, bullet_positions.as_slice(), "bullet positions buffer");
 
-        let mut all_bullet_positions = (0..MAX_BULLETS).map(|_| Vec3::ZERO).collect::<Vec<Vec3>>();
-        let bullet_positions_buffer = create_uniform_buffer(context, all_bullet_positions.as_slice(), "bullet positions buffer");
-        let layout = get_or_create_bind_group_layout(context, BULLET_POSITIONS_BIND_GROUP_LAYOUT, create_uniform_bind_group_layout);
-        let bullet_positions_bind_group = create_buffer_bind_group(context, &layout, &bullet_positions_buffer, "bullet positions bind group");
+        let mut bullet_rotations = (0..MAX_BULLETS).map(|_| Quat::IDENTITY).collect::<Vec<Quat>>();
+        let bullet_rotations_buffer = create_vertex_buffer(context, bullet_rotations.as_slice(), "bullet rotations buffer");
 
-        let mut all_bullet_rotations = (0..MAX_BULLETS).map(|_| Quat::IDENTITY).collect::<Vec<Quat>>();
-        let bullet_rotations_buffer = create_uniform_buffer(context, all_bullet_rotations.as_slice(), "bullet rotations buffer");
-        let layout = get_or_create_bind_group_layout(context, BULLET_ROTATIONS_BIND_GROUP_LAYOUT, create_uniform_bind_group_layout);
-        let bullet_rotations_bind_group = create_buffer_bind_group(context, &layout, &bullet_rotations_buffer, "bullet rotations bind group");
+        bullet_positions.clear();
+        bullet_rotations.clear();
 
-        all_bullet_positions.clear();
-        all_bullet_rotations.clear();
+        // Pre-calculate the bullet spread rotations. Only needs to be done once.
+        let mut x_rotations = Vec::with_capacity(SPREAD_AMOUNT as usize);
+        let mut y_rotations = Vec::with_capacity(SPREAD_AMOUNT as usize);
+        let spread_centering = ROTATION_PER_BULLET * (SPREAD_AMOUNT as f32 - 1.0) / 4.0;
+
+        for i in 0..SPREAD_AMOUNT {
+            let y_rot = Quat::from_axis_angle(
+                vec3(0.0, 1.0, 0.0),
+                ROTATION_PER_BULLET.mul_add((i - SPREAD_AMOUNT) as f32 / 2.0, spread_centering),
+            );
+            let x_rot = Quat::from_axis_angle(
+                vec3(1.0, 0.0, 0.0),
+                ROTATION_PER_BULLET.mul_add((i - SPREAD_AMOUNT) as f32 / 2.0, spread_centering),
+            );
+            x_rotations.push(x_rot);
+            y_rotations.push(y_rot)
+        }
 
         Self {
-            all_bullet_positions,
-            all_bullet_rotations,
-            all_bullet_directions: Default::default(),
+            bullet_positions,
+            bullet_rotations,
+            bullet_directions: Default::default(),
             bullet_groups: vec![],
+            x_rotations,
+            y_rotations,
             bullet_material,
             impact_spritesheet,
             impact_sprites: vec![],
-            bullet_mesh,
-            instance_indexes,
-            instances_index_buffer,
+            impact_mesh,
+            vertex_buffer,
+            index_buffer,
             bullet_positions_buffer,
-            bullet_positions_bind_group,
             bullet_rotations_buffer,
-            bullet_rotations_bind_group,
         }
     }
 
@@ -210,47 +228,63 @@ impl BulletSystem {
         let theta = oriented_angle(x, y, rot_vec) * -1.0;
 
         let mut mid_dir_quat = Quat::from_xyzw(1.0, 0.0, 0.0, 0.0);
-
         mid_dir_quat *= Quat::from_axis_angle(rot_vec, theta.to_radians());
 
-        let start_index = self.all_bullet_positions.len();
+        let start_index = self.bullet_positions.len();
 
         let bullet_group_size = spread_amount * spread_amount;
 
         let bullet_group = BulletGroup::new(start_index, bullet_group_size, BULLET_LIFETIME);
 
-        self.all_bullet_positions.resize(start_index + bullet_group_size as usize, Vec3::default());
-        self.all_bullet_rotations.resize(start_index + bullet_group_size as usize, Quat::default());
-        self.all_bullet_directions.resize(start_index + bullet_group_size as usize, Vec3::default());
+        self.bullet_positions.resize(start_index + bullet_group_size as usize, Vec3::default());
+        self.bullet_rotations.resize(start_index + bullet_group_size as usize, Quat::default());
+        self.bullet_directions.resize(start_index + bullet_group_size as usize, Vec3::default());
 
-        let i_start = 0;
-        let i_end = spread_amount;
+        // let i_start = 0;
+        // let i_end = spread_amount;
+        //
+        // let spread_centering = ROTATION_PER_BULLET * (spread_amount as f32 - 1.0) / 4.0;
 
-        let spread_centering = ROTATION_PER_BULLET * (spread_amount as f32 - 1.0) / 4.0;
+        // for i in i_start..i_end {
+        //     let y_quat = mid_dir_quat
+        //         * Quat::from_axis_angle(
+        //             vec3(0.0, 1.0, 0.0),
+        //             ROTATION_PER_BULLET.mul_add((i - spread_amount) as f32 / 2.0, spread_centering),
+        //         );
+        //
+        //     for j in 0..spread_amount {
+        //         let rot_quat = y_quat
+        //             * Quat::from_axis_angle(
+        //                 vec3(1.0, 0.0, 0.0),
+        //                 ROTATION_PER_BULLET.mul_add((j - spread_amount) as f32 / 2.0, spread_centering),
+        //             );
+        //
+        //         let direction = rot_quat.mul_vec3(CANONICAL_DIR * -1.0);
+        //
+        //         let index = (i * spread_amount + j) as usize + start_index;
+        //
+        //         self.bullet_positions[index] = projectile_spawn_point;
+        //         self.bullet_directions[index] = direction;
+        //         self.bullet_rotations[index] = rot_quat;
+        //     }
+        // }
 
-        for i in i_start..i_end {
-            let y_quat = mid_dir_quat
-                * Quat::from_axis_angle(
-                    vec3(0.0, 1.0, 0.0),
-                    ROTATION_PER_BULLET.mul_add((i - spread_amount) as f32 / 2.0, spread_centering),
-                );
+        let start: usize = start_index;
+        let end = start + bullet_group_size as usize;
 
-            for j in 0..spread_amount {
-                let rot_quat = y_quat
-                    * Quat::from_axis_angle(
-                        vec3(1.0, 0.0, 0.0),
-                        ROTATION_PER_BULLET.mul_add((j - spread_amount) as f32 / 2.0, spread_centering),
-                    );
+        for index in start..end {
+            let count = index - start;
+            let i = (count as f32 / SPREAD_AMOUNT as f32).floor();
+            let j = count as f32 % SPREAD_AMOUNT as f32;
 
-                let direction = rot_quat.mul_vec3(CANONICAL_DIR * -1.0);
+            let y_quat = mid_dir_quat * self.y_rotations[i as usize];
+            let rot_quat = y_quat * self.x_rotations[j as usize];
+            let direction = rot_quat.mul_vec3(CANONICAL_DIR * -1.0);
 
-                let index = (i * spread_amount + j) as usize + start_index;
-
-                self.all_bullet_positions[index] = projectile_spawn_point;
-                self.all_bullet_directions[index] = direction;
-                self.all_bullet_rotations[index] = rot_quat;
-            }
-        }
+            self.bullet_positions[index] = projectile_spawn_point;
+            self.bullet_rotations[index] = rot_quat;
+            self.bullet_directions[index] = direction;
+        };
 
         self.bullet_groups.push(bullet_group);
 
@@ -258,7 +292,6 @@ impl BulletSystem {
     }
 
     pub fn update_bullets(&mut self, context: &GpuContext, world: &mut World) {
-        //}, bulletImpactSprites: &mut Vec<SpriteSheetSprite>) {
 
         let use_aabb = !world.enemies.is_empty();
         let num_sub_groups = if use_aabb { 9 } else { 1 };
@@ -291,14 +324,14 @@ impl BulletSystem {
                     bullet_end += bullet_group_start_index;
 
                     for bullet_index in bullet_start..bullet_end {
-                        self.all_bullet_positions[bullet_index as usize] += self.all_bullet_directions[bullet_index as usize] * delta_position_magnitude;
+                        self.bullet_positions[bullet_index as usize] += self.bullet_directions[bullet_index as usize] * delta_position_magnitude;
                     }
 
                     let mut subgroup_bound_box = Aabb::new();
 
                     if use_aabb {
                         for bullet_index in bullet_start..bullet_end {
-                            subgroup_bound_box.expand_to_include(self.all_bullet_positions[bullet_index as usize]);
+                            subgroup_bound_box.expand_to_include(self.bullet_positions[bullet_index as usize]);
                         }
 
                         subgroup_bound_box.expand_by(BULLET_ENEMY_MAX_COLLISION_DIST);
@@ -312,8 +345,8 @@ impl BulletSystem {
                         }
                         for bullet_index in bullet_start..bullet_end {
                             if bullet_collides_with_enemy(
-                                &self.all_bullet_positions[bullet_index as usize],
-                                &self.all_bullet_directions[bullet_index as usize],
+                                &self.bullet_positions[bullet_index as usize],
+                                &self.bullet_directions[bullet_index as usize],
                                 enemy,
                             ) {
                                 // println!("killed enemy!");
@@ -335,9 +368,9 @@ impl BulletSystem {
         }
 
         if first_live_bullet != 0 {
-            self.all_bullet_positions.drain(0..first_live_bullet);
-            self.all_bullet_directions.drain(0..first_live_bullet);
-            self.all_bullet_rotations.drain(0..first_live_bullet);
+            self.bullet_positions.drain(0..first_live_bullet);
+            self.bullet_directions.drain(0..first_live_bullet);
+            self.bullet_rotations.drain(0..first_live_bullet);
 
             for group in self.bullet_groups.iter_mut() {
                 group.start_index -= first_live_bullet;
@@ -361,12 +394,12 @@ impl BulletSystem {
             }
         }
 
-        update_uniform_buffer(context, &self.bullet_positions_buffer, &self.all_bullet_positions.as_slice());
-        update_uniform_buffer(context, &self.bullet_rotations_buffer, &self.all_bullet_rotations.as_slice());
+        update_uniform_buffer(context, &self.bullet_positions_buffer, &self.bullet_positions.as_slice());
+        update_uniform_buffer(context, &self.bullet_rotations_buffer, &self.bullet_rotations.as_slice());
     }
 
     pub fn draw_bullets(&mut self, projection_view: &Mat4) {
-        if self.all_bullet_positions.is_empty() {
+        if self.bullet_positions.is_empty() {
             return;
         }
 

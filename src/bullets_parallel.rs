@@ -187,6 +187,7 @@ impl BulletStore {
 
         // direction angle with respect to the canonical direction
         let theta = oriented_angle(x, y, rot_vec) * -1.0;
+
         let mut mid_dir_quat = Quat::from_xyzw(1.0, 0.0, 0.0, 0.0);
         mid_dir_quat *= Quat::from_axis_angle(rot_vec, theta.to_radians());
 

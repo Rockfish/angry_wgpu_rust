@@ -5,18 +5,17 @@
 // shaders/instanced_texture_shader.vert
 // shaders/basic_texture_shader.frag
 
-const SPREAD_AMOUNT: u32 = 20;
-const MAX_BULLET_GROUPS: u32 = 10;
-const MAX_BULLETS: u32 = SPREAD_AMOUNT * SPREAD_AMOUNT * MAX_BULLET_GROUPS;
-
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) tex_coords: vec2<f32>,
 };
 
-// instance index into postion and rotation arrays
-struct InstanceInput {
-    @location(7) index: u32,
+struct PositionInput {
+    @location(2) position: vec3<f32>,
+}
+
+struct RotationInput {
+    @location(3) rotation: vec4<f32>,
 }
 
 struct SpriteUniform {
@@ -31,12 +30,9 @@ struct VertexOutput {
 
 @group(0) @binding(0) var<uniform> camera: CameraUniform;
 
-@group(1) @binding(0) var<uniform> bullet_positions: array<vec3<f32>, MAX_BULLETS>;
-@group(2) @binding(0) var<uniform> bullet_rotations: array<vec4<f32>, MAX_BULLETS>;
-
 // material information
-@group(3) @binding(0) var diffuse_texture: texture_2d<f32>;
-@group(3) @binding(1) var diffuse_sampler: sampler;
+@group(1) @binding(0) var diffuse_texture: texture_2d<f32>;
+@group(1) @binding(1) var diffuse_sampler: sampler;
 
 fn hamiltonProduct(q1: vec4<f32>, q2: vec4<f32>) -> vec4<f32> {
     return vec4<f32>(
@@ -75,16 +71,18 @@ fn rotate_by_quat(v: vec3<f32>, q_orig: vec4<f32>) -> vec3<f32> {
     return vec3<f32>(vPrime.x, vPrime.y, vPrime.z);
 }
 
-@vertex fn vs_main(in: VertexInput, instance: InstanceInput) -> VertexOutput {
+@vertex fn vs_main(
+    vert_in: VertexInput,
+    position_in: PositionInput,
+    rotation_in: RotationInput
+) -> VertexOutput {
 
     var result: VertexOutput;
-    var rotation_quat = bullet_rotations[instance.index];
-    var position_offset = bullet_positions[instance.index];
 
-    var rotated_in_position = rotate_by_quat(in.position, rotation_quat);
+    var rotated_in_position = rotate_by_quat(vert_in.position, rotation_in.rotation);
 
-    result.position = camera.projection * camera.view * vec4<f32>(rotated_in_position + position_offset, 1.0);
-    result.tex_coords = in.tex_coords;
+    result.position = camera.projection * camera.view * vec4<f32>(rotated_in_position + position_in.position, 1.0);
+    result.tex_coords = vert_in.tex_coords;
 
     return result;
 }

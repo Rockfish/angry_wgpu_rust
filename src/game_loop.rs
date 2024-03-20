@@ -281,7 +281,7 @@ fn game_run(context: &mut GpuContext, mut world: &mut World) {
                 aim_theta = 0.0;
             }
 
-            println!("aim_theta: {}", aim_theta);
+            // println!("aim_theta: {}", aim_theta);
         }
     }
 

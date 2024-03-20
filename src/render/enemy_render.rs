@@ -1,3 +1,4 @@
+use std::mem;
 use spark_gap::camera::camera_handler::CAMERA_BIND_GROUP_LAYOUT;
 use spark_gap::gpu_context::GpuContext;
 use spark_gap::material::MATERIAL_BIND_GROUP_LAYOUT;
@@ -9,7 +10,6 @@ use wgpu::{IndexFormat, RenderPass, RenderPipeline};
 use crate::enemy::{ENEMY_INSTANCES_BIND_GROUP_LAYOUT, EnemySystem};
 use crate::load_shader;
 use crate::params::shader_params::SHADER_PARAMETERS_BIND_GROUP_LAYOUT;
-use crate::render::buffers::instance_index_description;
 use crate::world::World;
 
 pub fn create_enemy_shader_pipeline(context: &GpuContext) -> RenderPipeline {
@@ -39,6 +39,18 @@ pub fn create_enemy_shader_pipeline(context: &GpuContext) -> RenderPipeline {
     let swapchain_capabilities = context.surface.get_capabilities(&context.adapter);
     let swapchain_format = swapchain_capabilities.formats[0];
 
+    let instance_index_description = wgpu::VertexBufferLayout {
+        array_stride: mem::size_of::<u32>() as wgpu::BufferAddress,
+        step_mode: wgpu::VertexStepMode::Instance,
+        attributes: &[
+            wgpu::VertexAttribute {
+                offset: 0,
+                shader_location: 7,
+                format: wgpu::VertexFormat::Uint32,
+            },
+        ],
+    };
+
     let render_pipeline = context.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some("Render Pipeline"),
         layout: Some(&pipeline_layout),
@@ -47,7 +59,7 @@ pub fn create_enemy_shader_pipeline(context: &GpuContext) -> RenderPipeline {
             entry_point: "vs_main",
             buffers: &[
                 ModelVertex::vertex_description(),
-                instance_index_description(),
+                instance_index_description,
             ],
         },
         fragment: Some(wgpu::FragmentState {
