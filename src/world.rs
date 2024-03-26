@@ -1,25 +1,25 @@
-use crate::bullets::BulletSystem;
-use crate::burn_marks::BurnMarks;
-use crate::enemy::{Enemy, EnemySystem};
-use crate::floor::Floor;
-use crate::game_loop::CameraType;
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::time::Instant;
+
 use glam::{Mat4, Vec3};
 use spark_gap::camera::camera::Camera;
 use spark_gap::camera::camera_handler::CameraHandler;
 use spark_gap::camera::fly_camera_controller::FlyCameraController;
 use spark_gap::hash_map::HashSet;
 use spark_gap::input::Input;
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::time::Instant;
-use wgpu::TextureView;
 use winit::keyboard::Key;
+
+use crate::bullets::BulletSystem;
+use crate::burn_marks::BurnMarks;
+use crate::enemy::{Enemy, EnemySystem};
+use crate::floor::Floor;
+use crate::game_loop::CameraType;
 // use crate::params::floor_lighting::FloorLightingHandler;
 use crate::muzzle_flash::MuzzleFlash;
 use crate::params::shader_params::ShaderParametersHandler;
 use crate::player::Player;
-use crate::render::main_render::AnimRenderPass;
-use crate::sound_system::SoundSystem;
+use crate::render::main_render::WorldRender;
 
 pub const FIRE_INTERVAL: f32 = 0.1;
 // seconds
@@ -71,7 +71,7 @@ pub struct World {
     pub mouse_y: f32,
     pub input: Input,
     pub player: RefCell<Player>,
-    pub scene_render: RefCell<AnimRenderPass>,
+    pub scene_render: RefCell<WorldRender>,
     pub shader_params: ShaderParametersHandler,
     pub floor: RefCell<Floor>,
     pub enemy_system: Rc<RefCell<EnemySystem>>,

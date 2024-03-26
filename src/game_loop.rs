@@ -3,7 +3,7 @@ use crate::burn_marks::BurnMarks;
 use crate::enemy::EnemySystem;
 use crate::floor::Floor;
 use crate::params::common::{DirectionLight, PointLight};
-use crate::render::main_render::{create_depth_texture_view, AnimRenderPass};
+use crate::render::main_render::WorldRender;
 use crate::world::{World, FIRE_INTERVAL, FLOOR_LIGHT_FACTOR, FLOOR_NON_BLUE, LIGHT_FACTOR, MONSTER_Y, NON_BLUE, PLAYER_MODEL_SCALE, SPREAD_AMOUNT};
 use glam::{vec3, vec4, Mat4, Vec3};
 use spark_gap::camera::camera::Camera;
@@ -129,7 +129,7 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
     let muzzle_flash = MuzzleFlash::new(&mut context, unit_square_quad.clone());
     let bullet_system = BulletSystem::new(&mut context, unit_square_quad.clone());
 
-    let scene_render = AnimRenderPass::new(&mut context);
+    let scene_render = WorldRender::new(&mut context);
 
     let mut world = World {
         start_instant: Instant::now(),
