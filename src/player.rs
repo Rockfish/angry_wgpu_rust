@@ -1,10 +1,9 @@
-use std::cell::RefCell;
 use std::f32::consts::PI;
 use std::ops::Deref;
 use std::rc::Rc;
 use std::time::Duration;
 
-use glam::{vec2, vec3, Mat4, Vec2, Vec3};
+use glam::{Mat4, vec2, Vec2, vec3, Vec3};
 use spark_gap::animator::{AnimationClip, AnimationRepeat, WeightedAnimation};
 use spark_gap::gpu_context::GpuContext;
 use spark_gap::hash_map::HashMap;
@@ -12,10 +11,8 @@ use spark_gap::input::Input;
 use spark_gap::model::Model;
 use spark_gap::model_builder::ModelBuilder;
 use spark_gap::texture_config::TextureType;
-use wgpu::{BindGroup, Buffer};
 use winit::event::MouseButton;
 use winit::keyboard::KeyCode;
-use crate::render::buffers::{create_buffer_bind_group, create_mat4_buffer, create_uniform_bind_group_layout, get_or_create_bind_group_layout, TRANSFORM_BIND_GROUP_LAYOUT, update_mat4_buffer};
 
 use crate::world::World;
 
@@ -34,8 +31,6 @@ pub struct Player {
     pub model: Model,
     pub position: Vec3,
     pub direction: Vec2,
-    pub transform_buffer: Buffer,
-    pub transform_bind_group: BindGroup,
     pub speed: f32,
     pub aim_theta: f32,
     pub last_fire_time: f32,
@@ -130,16 +125,10 @@ impl Player {
 
         let animation_name = Rc::from("idle");
 
-        let transform_buffer = create_mat4_buffer(context, &Mat4::IDENTITY, "player transform");
-        let layout = get_or_create_bind_group_layout(context, TRANSFORM_BIND_GROUP_LAYOUT, create_uniform_bind_group_layout);
-        let transform_bind_group = create_buffer_bind_group(context, &layout, &transform_buffer, "player transform bind");
-
         let player = Self {
             model: player_model,
             position: vec3(0.0, 0.0, 0.0),
             direction: vec2(0.0, 0.0),
-            transform_buffer,
-            transform_bind_group,
             last_fire_time: 0.0,
             is_trying_to_fire: false,
             is_alive: true,
@@ -165,8 +154,6 @@ impl Player {
     }
 
     pub fn get_muzzle_position(&self, player_model_transform: &Mat4) -> Mat4 {
-        // Position in original model of gun muzzle
-        // let point_vec = vec3(197.0, 76.143, -3.054);
         let point_vec = vec3(191.04, 79.231, -3.4651); // center of muzzle
 
         let animator = self.model.animator.borrow();
@@ -189,8 +176,6 @@ impl Player {
     }
 
     pub fn update(&mut self, context: &GpuContext, world: &World, model_transform: &Mat4, aim_theta: f32) {
-        update_mat4_buffer(context, &self.transform_buffer, &model_transform);
-
         self.model.update_animation(world.delta_time);
         let weight_animations = self.update_animation_weights(self.direction, aim_theta, world.frame_time);
         self.model.play_weight_animations(weight_animations.as_slice(), world.frame_time);

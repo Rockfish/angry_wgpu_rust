@@ -5,7 +5,7 @@ use spark_gap::gpu_context::GpuContext;
 use spark_gap::model::Model;
 use spark_gap::model_builder::ModelBuilder;
 use spark_gap::utils::rand_float;
-use wgpu::{BindGroup, BindGroupLayout, Buffer};
+use wgpu::{BindGroup, Buffer};
 
 use crate::capsule::Capsule;
 use crate::geom::distance_between_point_and_line_segment;
@@ -46,6 +46,8 @@ pub struct EnemySystem {
 
 impl EnemySystem {
     pub fn new(context: &mut GpuContext) -> Self {
+        
+        // EelDog model has diffuse and height materials
         let enemy_model = ModelBuilder::new("enemy", "assets/Models/Eeldog/EelDog.FBX").build(context).unwrap();
 
         let mut instance_indexes = vec![0_u32; MAX_ENEMIES];
