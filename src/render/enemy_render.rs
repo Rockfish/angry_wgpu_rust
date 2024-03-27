@@ -1,16 +1,17 @@
 use std::mem;
 use spark_gap::camera::camera_handler::CAMERA_BIND_GROUP_LAYOUT;
 use spark_gap::gpu_context::GpuContext;
-use spark_gap::material::MATERIAL_BIND_GROUP_LAYOUT;
+use spark_gap::material::{Material, MATERIAL_BIND_GROUP_LAYOUT};
 use spark_gap::model_builder::MODEL_BIND_GROUP_LAYOUT;
 use spark_gap::model_mesh::ModelVertex;
 use spark_gap::texture_config::TextureType;
 use wgpu::{IndexFormat, RenderPass, RenderPipeline};
 
 use crate::enemy::{ENEMY_INSTANCES_BIND_GROUP_LAYOUT, EnemySystem};
-use crate::load_shader;
 use crate::params::shader_params::SHADER_PARAMETERS_BIND_GROUP_LAYOUT;
 use crate::world::World;
+use crate::load_shader;
+use crate::render::textures::SHADOW_MATERIAL_BIND_GROUP_LAYOUT;
 
 pub fn create_enemy_shader_pipeline(context: &GpuContext) -> RenderPipeline {
     let camera_bind_group_layout = context.bind_layout_cache.get(CAMERA_BIND_GROUP_LAYOUT).unwrap();
@@ -18,6 +19,8 @@ pub fn create_enemy_shader_pipeline(context: &GpuContext) -> RenderPipeline {
     let material_bind_group_layout = context.bind_layout_cache.get(MATERIAL_BIND_GROUP_LAYOUT).unwrap();
     let params_bind_group_layout = context.bind_layout_cache.get(SHADER_PARAMETERS_BIND_GROUP_LAYOUT).unwrap();
     let instances_bind_group_layout = context.bind_layout_cache.get(ENEMY_INSTANCES_BIND_GROUP_LAYOUT).unwrap();
+    let shadow_bind_group_layout = context.bind_layout_cache.get(SHADOW_MATERIAL_BIND_GROUP_LAYOUT).unwrap();
+
 
     let pipeline_layout = context.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("Render Pipeline Layout"),
@@ -27,9 +30,7 @@ pub fn create_enemy_shader_pipeline(context: &GpuContext) -> RenderPipeline {
             params_bind_group_layout,
             instances_bind_group_layout,
             material_bind_group_layout, // diffuse
-            // material_bind_group_layout, // specular
-            // material_bind_group_layout, // emissive
-            // material_bind_group_layout, // shadow
+            shadow_bind_group_layout,   // shadow
         ],
         push_constant_ranges: &[],
     });
@@ -95,6 +96,7 @@ pub fn render_enemy_model<'a>(
     world: &'a World,
     mut render_pass: RenderPass<'a>,
     enemy_system: &'a EnemySystem,
+    shadow_map: &'a Material,
 ) -> RenderPass<'a> {
 
     let model = &enemy_system.enemy_model;
@@ -103,6 +105,7 @@ pub fn render_enemy_model<'a>(
     render_pass.set_bind_group(1, &model.bind_group, &[]);
     render_pass.set_bind_group(2, &world.shader_params.bind_group, &[]);
     render_pass.set_bind_group(3, &enemy_system.instances_bind_group, &[]);
+    render_pass.set_bind_group(5, shadow_map.bind_group.as_ref(), &[]);
 
     // not sure how to handle multiple meshes and instances together, so skipping that for now.
     for mesh in model.meshes.iter() {

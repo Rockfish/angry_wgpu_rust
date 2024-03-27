@@ -34,8 +34,8 @@ struct EnemyUniform {
 
 // fyi: eeldog model also has height material, but not used.
 
-//@group(6) @binding(0) var shadow_map_texture: texture_2d<f32>;
-//@group(6) @binding(1) var shadow_map_sampler: sampler;
+@group(5) @binding(0) var shadow_map_texture: texture_depth_2d;
+@group(5) @binding(1) var shadow_map_sampler: sampler_comparison;
 
 const wiggleMagnitude: f32 = 3.0;
 const wiggleDistModifier: f32 = 0.12;
@@ -109,7 +109,7 @@ struct VertexOutput {
           var bias: f32 = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
 
           bias = 0.001;
-//          shadow = ShadowCalculation(bias, in.light_space_position);
+          shadow = ShadowCalculation(bias, in.light_space_position);
 
           color = (1.0 - shadow) * params.direction_light.color * color * diff + vec4<f32>(amb, 1.0);
         }
@@ -117,7 +117,7 @@ struct VertexOutput {
         if (use_point_light != 0) {
           var lightDir = normalize(params.point_light.world_position.xyz - in.world_position);
           var diff = max(dot(normal, lightDir), 0.0);
-          var diffuse  = 0.7 * params.point_light.color.xyz  * diff * (textureSample(diffuse_texture, diffuse_sampler, in.tex_coords)).xyz;
+          var diffuse  = 0.7 * params.point_light.color.xyz  * diff * textureSample(diffuse_texture, diffuse_sampler, in.tex_coords).xyz;
           color += vec4<f32>(diffuse.xyz, 1.0);
         }
 
@@ -140,4 +140,20 @@ struct VertexOutput {
       }
 
     return color;
+}
+
+fn ShadowCalculation(bias: f32, fragPosLightSpace: vec4<f32>) -> f32 {
+
+  var projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+  projCoords = projCoords * 0.5 + 0.5;
+
+  let shadowDepth = textureSampleCompare(shadow_map_texture, shadow_map_sampler, projCoords.xy, projCoords.z);
+  var currentDepth = projCoords.z;
+
+  var shadow = 0.0;
+  if (currentDepth - bias) > shadowDepth {
+    shadow = 1.0;
+  };
+
+  return shadow;
 }

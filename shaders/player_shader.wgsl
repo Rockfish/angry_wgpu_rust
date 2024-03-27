@@ -24,8 +24,8 @@
 @group(5) @binding(0) var emissive_texture: texture_2d<f32>;
 @group(5) @binding(1) var emissive_sampler: sampler;
 
-//@group(7) @binding(0) var shadow_map_texture: texture_2d<f32>;
-//@group(7) @binding(1) var shadow_map_sampler: sampler;
+@group(6) @binding(0) var shadow_map_texture: texture_depth_2d;
+@group(6) @binding(1) var shadow_map_sampler: sampler_comparison;
 
 
 // Vertex shader section
@@ -85,7 +85,7 @@ fn vs_main(model: VertexInput) -> VertexOutput {
           var bias: f32 = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
 
           bias = 0.001;
-//          shadow = ShadowCalculation(bias, in.light_space_position);
+          shadow = ShadowCalculation(bias, in.light_space_position);
 
           color = (1.0 - shadow) * params.direction_light.color * color * diff + vec4<f32>(amb, 1.0);
         }
@@ -118,18 +118,18 @@ fn vs_main(model: VertexInput) -> VertexOutput {
     return color;
 }
 
-//fn ShadowCalculation(bias: f32, fragPosLightSpace: vec4<f32>) -> f32 {
-//
-//  var projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-//  projCoords = projCoords * 0.5 + 0.5;
-//
-//  var closestDepth = textureSample(shadow_map_texture, shadow_map_sampler, projCoords.xy).r;
-//  var currentDepth = projCoords.z;
-//
-//  var shadow = 0.0;
-//  if (currentDepth - bias) > closestDepth {
-//    shadow = 1.0;
-//  };
-//
-//  return shadow;
-//}
+fn ShadowCalculation(bias: f32, fragPosLightSpace: vec4<f32>) -> f32 {
+
+  var projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+  projCoords = projCoords * 0.5 + 0.5;
+
+  let shadowDepth = textureSampleCompare(shadow_map_texture, shadow_map_sampler, projCoords.xy, projCoords.z);
+  var currentDepth = projCoords.z;
+
+  var shadow = 0.0;
+  if (currentDepth - bias) > shadowDepth {
+    shadow = 1.0;
+  };
+
+  return shadow;
+}
