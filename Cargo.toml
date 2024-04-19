@@ -45,6 +45,13 @@ codegen-units = 1 # Reduced to increase optimisations.
 panic = 'abort'   # Abort on panic
 strip = "symbols" # Strip symbols from binary
 
+[lints.rust]
+unsafe_code = "forbid"
+# For exploratory dev.
+unused = "allow"
+unused_imports = "allow"
+dead_code = "allow"
+
 [lints.clippy]
 enum_glob_use = "deny"
 #pedantic = "deny"

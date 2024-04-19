@@ -13,16 +13,12 @@ use crate::world::World;
 
 pub fn create_bullet_shader_pipeline(context: &GpuContext) -> RenderPipeline {
     let camera_bind_group_layout = context.bind_layout_cache.get(CAMERA_BIND_GROUP_LAYOUT).unwrap();
-    // let bullet_positions_bind_group_layout = context.bind_layout_cache.get(BULLET_POSITIONS_BIND_GROUP_LAYOUT).unwrap();
-    // let bullet_rotations_bind_group_layout = context.bind_layout_cache.get(BULLET_ROTATIONS_BIND_GROUP_LAYOUT).unwrap();
     let material_bind_group_layout = context.bind_layout_cache.get(MATERIAL_BIND_GROUP_LAYOUT).unwrap();
 
     let pipeline_layout = context.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("bullet shader pipeline layout"),
         bind_group_layouts: &[
             camera_bind_group_layout,
-            // bullet_positions_bind_group_layout,
-            // bullet_rotations_bind_group_layout,
             material_bind_group_layout, // diffuse
         ],
         push_constant_ranges: &[],
@@ -33,28 +29,24 @@ pub fn create_bullet_shader_pipeline(context: &GpuContext) -> RenderPipeline {
     let swapchain_capabilities = context.surface.get_capabilities(&context.adapter);
     let swapchain_format = swapchain_capabilities.formats[0];
 
-    let instance_vec3_description =  wgpu::VertexBufferLayout {
+    let instance_vec3_description = wgpu::VertexBufferLayout {
         array_stride: mem::size_of::<Vec3>() as wgpu::BufferAddress,
         step_mode: wgpu::VertexStepMode::Instance,
-        attributes: &[
-            wgpu::VertexAttribute {
-                offset: 0,
-                shader_location: 2,
-                format: wgpu::VertexFormat::Float32x3,
-            },
-        ],
+        attributes: &[wgpu::VertexAttribute {
+            offset: 0,
+            shader_location: 2,
+            format: wgpu::VertexFormat::Float32x3,
+        }],
     };
 
     let instance_vec4_description = wgpu::VertexBufferLayout {
         array_stride: mem::size_of::<Vec4>() as wgpu::BufferAddress,
         step_mode: wgpu::VertexStepMode::Instance,
-        attributes: &[
-            wgpu::VertexAttribute {
-                offset: 0,
-                shader_location: 3,
-                format: wgpu::VertexFormat::Float32x4,
-            },
-        ],
+        attributes: &[wgpu::VertexAttribute {
+            offset: 0,
+            shader_location: 3,
+            format: wgpu::VertexFormat::Float32x4,
+        }],
     };
 
     let render_pipeline = context.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -63,11 +55,7 @@ pub fn create_bullet_shader_pipeline(context: &GpuContext) -> RenderPipeline {
         vertex: wgpu::VertexState {
             module: &shader,
             entry_point: "vs_main",
-            buffers: &[
-                SmallMesh::vertex_description(),
-                instance_vec3_description,
-                instance_vec4_description,
-            ],
+            buffers: &[SmallMesh::vertex_description(), instance_vec3_description, instance_vec4_description],
         },
         fragment: Some(wgpu::FragmentState {
             module: &shader,
@@ -112,12 +100,7 @@ pub fn create_bullet_shader_pipeline(context: &GpuContext) -> RenderPipeline {
     render_pipeline
 }
 
-pub fn render_bullets<'a>(
-    world: &'a World,
-    mut render_pass: RenderPass<'a>,
-    bullet_system: &'a BulletSystem,
-) -> RenderPass<'a> {
-
+pub fn render_bullets<'a>(world: &'a World, mut render_pass: RenderPass<'a>, bullet_system: &'a BulletSystem) -> RenderPass<'a> {
     render_pass.set_bind_group(0, &world.camera_handler.bind_group, &[]);
     render_pass.set_bind_group(1, &bullet_system.bullet_material.bind_group, &[]);
 

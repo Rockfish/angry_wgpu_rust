@@ -5,8 +5,8 @@ use spark_gap::texture_config::{TextureConfig, TextureWrap};
 use wgpu::{BindGroup, Buffer};
 
 use crate::render::buffers::{
-    create_buffer_bind_group, create_mat4_buffer, create_uniform_bind_group_layout, create_vertex_buffer, get_or_create_bind_group_layout, update_mat4_buffer,
-    update_uniform_buffer, TRANSFORM_BIND_GROUP_LAYOUT,
+    create_buffer_bind_group, create_mat4_buffer_init, create_uniform_bind_group_layout, create_vertex_buffer_init, get_or_create_bind_group_layout,
+    update_mat4_buffer, update_uniform_buffer, TRANSFORM_BIND_GROUP_LAYOUT,
 };
 use crate::small_mesh::SmallMesh;
 use crate::sprite_sheet::SpriteSheet;
@@ -29,10 +29,10 @@ impl MuzzleFlash {
         let muzzle_flash_impact_spritesheet = SpriteSheet::new(context, muzzle_flash_material, 6.0, 0.03);
 
         let mut sprites_age = vec![0.0_f32; MAX_FLASHES];
-        let age_buffer = create_vertex_buffer(context, sprites_age.as_slice(), "sprite age vec");
+        let age_buffer = create_vertex_buffer_init(context, sprites_age.as_slice(), "sprite age vec");
         sprites_age.clear();
 
-        let transform_buffer = create_mat4_buffer(context, &Mat4::IDENTITY, "muzzle flash transform");
+        let transform_buffer = create_mat4_buffer_init(context, &Mat4::IDENTITY, "muzzle flash transform");
         let layout = get_or_create_bind_group_layout(context, TRANSFORM_BIND_GROUP_LAYOUT, create_uniform_bind_group_layout);
         let bind_group = create_buffer_bind_group(context, &layout, &transform_buffer, "muzzle flash transform bind");
 

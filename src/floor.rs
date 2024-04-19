@@ -1,5 +1,5 @@
 use crate::render::buffers::{
-    create_buffer_bind_group, create_mat4_buffer, create_uniform_bind_group_layout, get_or_create_bind_group_layout, TRANSFORM_BIND_GROUP_LAYOUT,
+    create_buffer_bind_group, create_mat4_buffer_init, create_uniform_bind_group_layout, get_or_create_bind_group_layout, TRANSFORM_BIND_GROUP_LAYOUT,
 };
 use crate::small_mesh::SmallMesh;
 use glam::{vec3, Mat4, Vec3};
@@ -62,7 +62,7 @@ impl Floor {
 
         let model_transform = Mat4::IDENTITY;
 
-        let transform_buffer = create_mat4_buffer(context, &model_transform, "floor transform");
+        let transform_buffer = create_mat4_buffer_init(context, &model_transform, "floor transform");
         let layout = get_or_create_bind_group_layout(context, TRANSFORM_BIND_GROUP_LAYOUT, create_uniform_bind_group_layout);
         let bind_group = create_buffer_bind_group(context, &layout, &transform_buffer, "floor transform bind");
 

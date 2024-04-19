@@ -2,8 +2,13 @@ use crate::bullets::BulletSystem;
 use crate::burn_marks::BurnMarks;
 use crate::enemy::EnemySystem;
 use crate::floor::Floor;
+use crate::muzzle_flash::MuzzleFlash;
 use crate::params::common::{DirectionLight, PointLight};
+use crate::params::shader_params::{ShaderParametersHandler, ShaderParametersUniform};
+use crate::player::Player;
+use crate::quads::{create_more_obnoxious_quad, create_obnoxious_quad, create_unit_square};
 use crate::render::main_render::WorldRender;
+use crate::sound_system::SoundSystem;
 use crate::world::{World, FIRE_INTERVAL, FLOOR_LIGHT_FACTOR, FLOOR_NON_BLUE, LIGHT_FACTOR, MONSTER_Y, NON_BLUE, PLAYER_MODEL_SCALE, SPREAD_AMOUNT};
 use glam::{vec3, vec4, Mat4, Vec3};
 use spark_gap::camera::camera::Camera;
@@ -24,11 +29,6 @@ use winit::event_loop::EventLoop;
 use winit::keyboard;
 use winit::keyboard::NamedKey::Escape;
 use winit::window::Window;
-use crate::muzzle_flash::MuzzleFlash;
-use crate::params::shader_params::{ShaderParametersHandler, ShaderParametersUniform};
-use crate::player::Player;
-use crate::quads::{create_more_obnoxious_quad, create_obnoxious_quad, create_unit_square};
-use crate::sound_system::SoundSystem;
 
 const PARALLELISM: i32 = 4;
 
@@ -208,7 +208,6 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
 }
 
 fn game_run(context: &mut GpuContext, mut world: &mut World) {
-
     world.handle_input();
 
     world.camera_controller.update(&world.input, world.delta_time);

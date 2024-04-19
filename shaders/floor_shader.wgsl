@@ -35,6 +35,13 @@ struct VertexOutput {
     @location(2) fragement_light_space_position: vec4<f32>,
 };
 
+@vertex fn vs_shadow(input: VertexInput) -> @builtin(position) vec4<f32> {
+//    let light = lights_uniform[index];
+    var in_position = vec4<f32>(input.position, 1.0);
+    var world_position = (model_transform * in_position).xyz;
+    return params.light_space_matrix * vec4<f32>(world_position, 1.0);
+}
+
 // from basic_texture_shader.vert
 @vertex fn vs_main(input: VertexInput) -> VertexOutput {
 

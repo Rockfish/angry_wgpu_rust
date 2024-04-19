@@ -1,16 +1,22 @@
+use std::char::MAX;
 use std::f32::consts::PI;
+use std::mem;
 
-use glam::{Mat4, vec2, vec3, Vec3};
+use glam::{vec2, vec3, Mat4, Vec3};
 use spark_gap::gpu_context::GpuContext;
 use spark_gap::model::Model;
 use spark_gap::model_builder::ModelBuilder;
 use spark_gap::utils::rand_float;
-use wgpu::{BindGroup, Buffer};
+use wgpu::{BindGroup, Buffer, BufferAddress};
 
 use crate::capsule::Capsule;
 use crate::geom::distance_between_point_and_line_segment;
-use crate::render::buffers::{create_buffer_bind_group, create_uniform_bind_group_layout, create_uniform_buffer, create_vertex_buffer, get_or_create_bind_group_layout, update_uniform_buffer};
-use crate::world::{MONSTER_SPEED, MONSTER_Y, PLAYER_COLLISION_RADIUS, World};
+use crate::render::buffers::{
+    create_buffer_bind_group, create_uniform_bind_group_layout, create_uniform_buffer, create_uniform_buffer_init, create_vertex_buffer_init,
+    get_or_create_bind_group_layout, update_uniform_buffer,
+};
+use crate::small_mesh::SmallMeshVertex;
+use crate::world::{World, MONSTER_SPEED, MONSTER_Y, PLAYER_COLLISION_RADIUS};
 
 pub const MAX_ENEMIES: usize = 100;
 pub const ENEMY_COLLIDER: Capsule = Capsule { height: 0.4, radius: 0.08 };
@@ -18,7 +24,7 @@ const ENEMY_SPAWN_INTERVAL: f32 = 1.0; // seconds
 const SPAWNS_PER_INTERVAL: i32 = 1;
 const SPAWN_RADIUS: f32 = 10.0; // from player
 
-pub const ENEMY_INSTANCES_BIND_GROUP_LAYOUT: &str = "enemy instances bind group layout";
+pub const ENEMY_UNIFORMS_BIND_GROUP_LAYOUT: &str = "enemy instances bind group layout";
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -37,47 +43,32 @@ pub struct EnemySystem {
     pub count_down: f32,
     pub monster_y: f32,
     pub enemy_model: Model,
-    pub instance_indexes: Vec<u32>,
-    pub instances_index_buffer: Buffer,
     pub instances_uniforms: Vec<EnemyUniform>,
-    pub instances_buffer: Buffer,
+    pub instances_uniform_buffer: Buffer,
     pub instances_bind_group: BindGroup,
 }
 
 impl EnemySystem {
     pub fn new(context: &mut GpuContext) -> Self {
-        
         // EelDog model has diffuse and height materials
         let enemy_model = ModelBuilder::new("enemy", "assets/Models/Eeldog/EelDog.FBX").build(context).unwrap();
 
-        let mut instance_indexes = vec![0_u32; MAX_ENEMIES];
-        let instances_index_buffer = create_vertex_buffer(context, instance_indexes.as_slice(), "enemy instance indexes");
-        instance_indexes.clear();
+        let instances_uniform_buffer = create_uniform_buffer(context, mem::size_of::<EnemyUniform>() * MAX_ENEMIES, "enemies instances uniform vec");
 
-        let mut instances_uniforms = (0..MAX_ENEMIES).map(|_|
-            EnemyUniform{ model_transform: Default::default(), aim_rotation: Default::default() })
-            .collect::<Vec<EnemyUniform>>();
-
-        let instances_buffer = create_uniform_buffer(context, instances_uniforms.as_slice(), "enemies instances uniform vec");
-        let layout = get_or_create_bind_group_layout(context, ENEMY_INSTANCES_BIND_GROUP_LAYOUT, create_uniform_bind_group_layout);
-        let instances_bind_group = create_buffer_bind_group(context, &layout, &instances_buffer, "enemies instances bind group");
-
-        instances_uniforms.clear();
+        let layout = get_or_create_bind_group_layout(context, ENEMY_UNIFORMS_BIND_GROUP_LAYOUT, create_uniform_bind_group_layout);
+        let instances_bind_group = create_buffer_bind_group(context, &layout, &instances_uniform_buffer, "enemies instances bind group");
 
         Self {
             count_down: ENEMY_SPAWN_INTERVAL,
             monster_y: MONSTER_Y,
             enemy_model,
-            instance_indexes,
-            instances_index_buffer,
-            instances_uniforms,
-            instances_buffer,
+            instances_uniforms: vec![],
+            instances_uniform_buffer,
             instances_bind_group,
         }
     }
 
     pub fn update(&mut self, context: &mut GpuContext, world: &mut World) {
-
         world.enemies.retain(|e| e.is_alive);
 
         self.count_down -= world.delta_time;
@@ -89,11 +80,9 @@ impl EnemySystem {
             self.count_down += ENEMY_SPAWN_INTERVAL;
         }
 
-        self.instance_indexes.clear();
         self.instances_uniforms.clear();
 
-        for (i, e) in world.enemies.iter_mut().enumerate() {
-
+        for e in world.enemies.iter_mut() {
             let monster_theta = (e.direction.x / e.direction.z).atan() + (if e.direction.z < 0.0 { 0.0 } else { PI });
 
             let mut model_transform = Mat4::from_translation(e.position);
@@ -105,21 +94,18 @@ impl EnemySystem {
 
             let aim_rotation = Mat4::from_axis_angle(vec3(1.0, 0.0, 0.0), 90.0f32.to_radians());
 
-            let uniform = EnemyUniform {
-                model_transform,
-                aim_rotation,
-            };
+            let uniform = EnemyUniform { model_transform, aim_rotation };
 
-            self.instance_indexes.push(i as u32);
             self.instances_uniforms.push(uniform);
         }
 
-        update_uniform_buffer(context, &self.instances_buffer, self.instances_uniforms.as_slice());
-        update_uniform_buffer(context, &self.instances_index_buffer, self.instance_indexes.as_slice());
+        update_uniform_buffer(context, &self.instances_uniform_buffer, self.instances_uniforms.as_slice());
     }
 
     pub fn spawn_enemy(&mut self, world: &mut World) {
-        if world.enemies.len() == MAX_ENEMIES { return; }
+        if world.enemies.len() == MAX_ENEMIES {
+            return;
+        }
 
         let theta = (rand_float() * 360.0).to_radians();
         let x = theta.sin().mul_add(SPAWN_RADIUS, world.player.borrow().position.x);
@@ -162,18 +148,7 @@ impl EnemySystem {
             }
         }
     }
-
-    pub fn draw_enemies(&mut self, world: &mut World) {
-        // shader.use_shader();
-        // shader.set_vec3("nosePos", &vec3(1.0, MONSTER_Y, -2.0));
-        // shader.set_float("time", world.frame_time);
-
-
-    }
-
-    // pub fn instance_description()
 }
-
 
 // fn create_enemy_instances_bind_group_layout(context: &GpuContext) -> BindGroupLayout {
 //     context.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {

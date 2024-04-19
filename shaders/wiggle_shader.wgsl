@@ -5,11 +5,6 @@
 
 const MAX_ENEMIES = 100;
 
-// instance index into enemy_uniforms array
-struct InstanceInput {
-    @location(7) index: u32,
-}
-
 struct EnemyUniform {
     model_transform: mat4x4<f32>,
     model_rotation: mat4x4<f32>,
@@ -52,11 +47,18 @@ struct VertexOutput {
     @location(3) light_space_position: vec4<f32>,
 };
 
-@vertex fn vs_main(in: VertexInput, instance: InstanceInput) -> VertexOutput {
+@vertex fn vs_shadow(input: VertexInput) -> @builtin(position) vec4<f32> {
+//    let light = lights_uniform[index];
+    var in_position = vec4<f32>(input.position, 1.0);
+    var world_position = (model_transform * in_position).xyz;
+    return params.light_space_matrix * vec4<f32>(world_position, 1.0);
+}
+
+@vertex fn vs_main(in: VertexInput, @builtin(instance_index) index: u32) -> VertexOutput {
 
     var result: VertexOutput;
 
-    var enemy = enemy_uniforms[instance.index];
+    var enemy = enemy_uniforms[index];
     var enemy_transform = enemy.model_transform;
     var enemy_model_rotation = enemy.model_rotation;
 

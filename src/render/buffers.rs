@@ -1,13 +1,32 @@
 use std::num::NonZeroU32;
-use glam::{Mat4, Vec3, Vec4};
-use spark_gap::gpu_context::GpuContext;
 use std::rc::Rc;
+
+use glam::Mat4;
+use spark_gap::gpu_context::GpuContext;
 use wgpu::util::DeviceExt;
-use wgpu::{BindGroup, BindGroupLayout, Buffer};
+use wgpu::{BindGroup, BindGroupLayout, Buffer, BufferAddress};
 
 pub const TRANSFORM_BIND_GROUP_LAYOUT: &str = "transform bind group layout";
 
-pub fn create_vertex_buffer<T: bytemuck::Pod>(context: &GpuContext, uniform: &[T], label: &str) -> Buffer {
+pub fn create_vertex_buffer(context: &GpuContext, size: usize, label: &str) -> Buffer {
+    context.device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some(label),
+        size: size as BufferAddress,
+        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: false,
+    })
+}
+
+pub fn create_uniform_buffer(context: &GpuContext, size: usize, label: &str) -> Buffer {
+    context.device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some(label),
+        size: size as BufferAddress,
+        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: false,
+    })
+}
+
+pub fn create_vertex_buffer_init<T: bytemuck::Pod>(context: &GpuContext, uniform: &[T], label: &str) -> Buffer {
     context.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some(label),
         contents: bytemuck::cast_slice(uniform),
@@ -15,7 +34,7 @@ pub fn create_vertex_buffer<T: bytemuck::Pod>(context: &GpuContext, uniform: &[T
     })
 }
 
-pub fn create_uniform_buffer<T: bytemuck::Pod>(context: &GpuContext, uniform: &[T], label: &str) -> Buffer {
+pub fn create_uniform_buffer_init<T: bytemuck::Pod>(context: &GpuContext, uniform: &[T], label: &str) -> Buffer {
     context.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some(label),
         contents: bytemuck::cast_slice(uniform),
@@ -23,7 +42,7 @@ pub fn create_uniform_buffer<T: bytemuck::Pod>(context: &GpuContext, uniform: &[
     })
 }
 
-pub fn create_mat4_buffer(context: &mut GpuContext, data: &Mat4, label: &str) -> Buffer {
+pub fn create_mat4_buffer_init(context: &mut GpuContext, data: &Mat4, label: &str) -> Buffer {
     context.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         contents: bytemuck::cast_slice(&data.to_cols_array()),

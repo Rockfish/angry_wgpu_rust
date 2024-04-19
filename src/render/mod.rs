@@ -6,12 +6,11 @@ use wgpu::util::DeviceExt;
 use wgpu::Buffer;
 
 pub mod buffers;
+mod bullet_render;
 pub mod enemy_render;
 pub mod floor_render;
 pub mod main_render;
 pub mod player_render;
-mod sprite_render;
-mod bullet_render;
 mod shader_loader;
+mod sprite_render;
 mod textures;
-

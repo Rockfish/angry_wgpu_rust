@@ -3,7 +3,7 @@ use spark_gap::gpu_context::GpuContext;
 use spark_gap::material::Material;
 use wgpu::{BindGroup, Buffer};
 
-use crate::render::buffers::{create_buffer_bind_group, create_uniform_bind_group_layout, create_uniform_buffer, get_or_create_bind_group_layout};
+use crate::render::buffers::{create_buffer_bind_group, create_uniform_bind_group_layout, create_uniform_buffer_init, get_or_create_bind_group_layout};
 
 pub const SPRITE_BIND_GROUP_LAYOUT: &str = "sprite_bind_group_layout";
 
@@ -25,7 +25,7 @@ pub struct SpriteSheet {
 impl SpriteSheet {
     pub fn new(context: &mut GpuContext, material: Material, num_columns: f32, time_per_sprite: f32) -> Self {
         let uniform = SpriteSheetUniform { num_columns, time_per_sprite };
-        let buffer = create_uniform_buffer(context, &[uniform], "sprite sheet uniform");
+        let buffer = create_uniform_buffer_init(context, &[uniform], "sprite sheet uniform");
         let layout = get_or_create_bind_group_layout(context, SPRITE_BIND_GROUP_LAYOUT, create_uniform_bind_group_layout);
         let bind_group = create_buffer_bind_group(context, &layout, &buffer, "sprite sheet uniform bind");
 

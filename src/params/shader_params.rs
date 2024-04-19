@@ -41,7 +41,7 @@ impl ShaderParametersHandler {
             ambient_color: Default::default(),
             time: 0.0,
             depth_mode: 0,
-            use_light: 0,
+            use_light: 1,
             use_point_light: 0,
             use_emissive: 0,
             use_specular: 0,

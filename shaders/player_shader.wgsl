@@ -38,6 +38,13 @@ struct VertexOutput {
     @location(3) light_space_position: vec4<f32>,
 };
 
+@vertex fn vs_shadow(input: VertexInput) -> @builtin(position) vec4<f32> {
+//    let light = lights_uniform[index];
+    var in_position = vec4<f32>(input.position, 1.0);
+    var world_position = (model_transform * in_position).xyz;
+    return params.light_space_matrix * vec4<f32>(world_position, 1.0);
+}
+
 @vertex
 fn vs_main(model: VertexInput) -> VertexOutput {
 
@@ -55,7 +62,6 @@ fn vs_main(model: VertexInput) -> VertexOutput {
 
     return result;
 }
-
 
 // Fragment shader section
 

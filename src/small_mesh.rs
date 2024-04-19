@@ -26,15 +26,15 @@ impl SmallMesh {
             attributes: &[
                 // vertices
                 wgpu::VertexAttribute {
-                    offset: 0,
                     shader_location: 0,
                     format: wgpu::VertexFormat::Float32x3,
+                    offset: 0,
                 },
                 // tex coords
                 wgpu::VertexAttribute {
-                    offset: mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
                     shader_location: 1,
                     format: wgpu::VertexFormat::Float32x2,
+                    offset: mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
                 },
             ],
         }

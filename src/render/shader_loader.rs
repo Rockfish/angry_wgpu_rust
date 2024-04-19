@@ -1,6 +1,6 @@
+use naga_oil::compose::{ComposableModuleDescriptor, Composer, NagaModuleDescriptor};
 use std::borrow::Cow;
 use std::io::Read;
-use naga_oil::compose::{ComposableModuleDescriptor, Composer, NagaModuleDescriptor};
 
 pub fn try_every_shader_file(composer: &mut Composer, for_shader: &str, shader_dir: &str, max_iters: usize) -> anyhow::Result<()> {
     let mut try_again = true;

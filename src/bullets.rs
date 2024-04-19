@@ -1,20 +1,21 @@
 use std::f32::consts::PI;
+use std::mem;
 
-use glam::{Mat4, Quat, vec3, Vec3, vec4, Vec4Swizzles};
+use glam::{vec3, vec4, Mat4, Quat, Vec3, Vec4Swizzles};
 use spark_gap::gpu_context::GpuContext;
 use spark_gap::material::Material;
 use spark_gap::texture_config::{TextureConfig, TextureFilter, TextureType, TextureWrap};
-use wgpu::Buffer;
 use wgpu::util::DeviceExt;
+use wgpu::Buffer;
 
 use crate::aabb::Aabb;
 use crate::capsule::Capsule;
 use crate::enemy::{Enemy, ENEMY_COLLIDER};
 use crate::geom::{distance_between_line_segments, oriented_angle};
-use crate::render::buffers::{create_vertex_buffer, update_uniform_buffer};
+use crate::render::buffers::{create_vertex_buffer, create_vertex_buffer_init, update_uniform_buffer};
 use crate::small_mesh::SmallMesh;
 use crate::sprite_sheet::{SpriteSheet, SpriteSheetSprite};
-use crate::world::{MAX_BULLET_GROUPS, SPREAD_AMOUNT, World};
+use crate::world::{World, MAX_BULLET_GROUPS, SPREAD_AMOUNT};
 
 pub struct BulletGroup {
     start_index: usize,
@@ -127,7 +128,6 @@ const BULLET_INDICES_H_V: [u32; 12] = [
 
 impl BulletSystem {
     pub fn new(context: &mut GpuContext, impact_mesh: SmallMesh) -> Self {
-
         let texture_config = TextureConfig {
             flip_v: false,
             flip_h: true,
@@ -138,8 +138,6 @@ impl BulletSystem {
         };
 
         let bullet_material = Material::new(context, "angrygl_assets/bullet/bullet_texture_transparent.png", &texture_config).unwrap();
-        // let bullet_texture = Texture::new("angrygl_assets/bullet/red_bullet_transparent.png", &texture_config).unwrap();
-        // let bullet_texture = Texture::new("angrygl_assets/bullet/red_and_green_bullet_transparent.png", &texture_config).unwrap();
 
         let vertices = BULLET_VERTICES_H_V;
         let indices = BULLET_INDICES_H_V;
@@ -159,14 +157,8 @@ impl BulletSystem {
         let impact_sprite_sheet_material = Material::new(context, "angrygl_assets/bullet/impact_spritesheet_with_00.png", &texture_config).unwrap();
         let impact_spritesheet = SpriteSheet::new(context, impact_sprite_sheet_material, 11.0, 0.05);
 
-        let mut bullet_positions = (0..MAX_BULLETS).map(|_| Vec3::ZERO).collect::<Vec<Vec3>>();
-        let bullet_positions_buffer = create_vertex_buffer(context, bullet_positions.as_slice(), "bullet positions buffer");
-
-        let mut bullet_rotations = (0..MAX_BULLETS).map(|_| Quat::IDENTITY).collect::<Vec<Quat>>();
-        let bullet_rotations_buffer = create_vertex_buffer(context, bullet_rotations.as_slice(), "bullet rotations buffer");
-
-        bullet_positions.clear();
-        bullet_rotations.clear();
+        let bullet_positions_buffer = create_vertex_buffer(context, mem::size_of::<Vec3>() * MAX_BULLETS, "bullet positions buffer");
+        let bullet_rotations_buffer = create_vertex_buffer(context, mem::size_of::<Quat>() * MAX_BULLETS, "bullet rotations buffer");
 
         // Pre-calculate the bullet spread rotations. Only needs to be done once.
         let mut x_rotations = Vec::with_capacity(SPREAD_AMOUNT as usize);
@@ -187,8 +179,8 @@ impl BulletSystem {
         }
 
         Self {
-            bullet_positions,
-            bullet_rotations,
+            bullet_positions: vec![],
+            bullet_rotations: vec![],
             bullet_directions: Default::default(),
             bullet_groups: vec![],
             x_rotations,
@@ -284,7 +276,7 @@ impl BulletSystem {
             self.bullet_positions[index] = projectile_spawn_point;
             self.bullet_rotations[index] = rot_quat;
             self.bullet_directions[index] = direction;
-        };
+        }
 
         self.bullet_groups.push(bullet_group);
 
@@ -292,7 +284,6 @@ impl BulletSystem {
     }
 
     pub fn update_bullets(&mut self, context: &GpuContext, world: &mut World) {
-
         let use_aabb = !world.enemies.is_empty();
         let num_sub_groups = if use_aabb { 9 } else { 1 };
 

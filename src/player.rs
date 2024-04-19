@@ -3,7 +3,7 @@ use std::ops::Deref;
 use std::rc::Rc;
 use std::time::Duration;
 
-use glam::{Mat4, vec2, Vec2, vec3, Vec3};
+use glam::{vec2, vec3, Mat4, Vec2, Vec3};
 use spark_gap::animator::{AnimationClip, AnimationRepeat, WeightedAnimation};
 use spark_gap::gpu_context::GpuContext;
 use spark_gap::hash_map::HashMap;
@@ -149,7 +149,8 @@ impl Player {
     pub fn set_animation(&mut self, animation_name: &Rc<str>, seconds: u32) {
         if !self.animation_name.eq(animation_name) {
             self.animation_name = animation_name.clone();
-            self.model.play_clip_with_transition(self.animations.get(self.animation_name.deref()), Duration::from_secs(seconds as u64));
+            self.model
+                .play_clip_with_transition(self.animations.get(self.animation_name.deref()), Duration::from_secs(seconds as u64));
         }
     }
 
