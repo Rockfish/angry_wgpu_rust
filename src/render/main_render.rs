@@ -4,7 +4,7 @@ use wgpu::{CommandEncoder, RenderPassDescriptor, RenderPipeline, TextureView};
 
 use crate::render::bullet_render::{create_bullet_shader_pipeline, render_bullets};
 use crate::render::enemy_render::{create_enemy_shader_pipeline, forward_render_enemies, shadow_render_enemies};
-use crate::render::floor_render::{create_floor_shader_pipeline, render_floor};
+use crate::render::floor_render::{create_floor_shader_pipeline, forward_render_floor, shadow_render_floor};
 use crate::render::player_render::{create_player_shader_pipeline, forward_render_player, shadow_render_player};
 use crate::render::sprite_render::{create_sprite_shader_pipeline, render_muzzle_flashes};
 use crate::render::textures::{create_depth_texture_view, create_shadow_map_material, create_shadow_texture_view};
@@ -138,7 +138,7 @@ impl WorldRender {
 
         // floor
         render_pass.set_pipeline(&self.floor_shader_pipelines.shadow_pipeline);
-        render_pass = render_floor(world, render_pass, floor);
+        render_pass = shadow_render_floor(world, render_pass, floor);
 
         // player
         render_pass.set_pipeline(&self.player_shader_pipelines.shadow_pipeline);
@@ -160,7 +160,7 @@ impl WorldRender {
 
         // floor
         render_pass.set_pipeline(&self.floor_shader_pipelines.forward_pipeline);
-        render_pass = render_floor(world, render_pass, floor);
+        render_pass = forward_render_floor(world, render_pass, floor, &self.shadow_map_material);
 
         // player
         render_pass.set_pipeline(&self.player_shader_pipelines.forward_pipeline);

@@ -38,15 +38,12 @@ struct VertexOutput {
     @location(3) light_space_position: vec4<f32>,
 };
 
-@vertex fn vs_shadow(input: VertexInput) -> @builtin(position) vec4<f32> {
-//    let light = lights_uniform[index];
-    var in_position = vec4<f32>(input.position, 1.0);
-    var world_position = (model_transform * in_position).xyz;
-    return params.light_space_matrix * vec4<f32>(world_position, 1.0);
+@vertex fn vs_shadow(vertex_input: VertexInput) -> @builtin(position) vec4<f32> {
+    var anim_output = get_animated_position(vertex_input, node_transform, bone_transforms);
+    return params.light_space_matrix * model_transform * anim_output.position;
 }
 
-@vertex
-fn vs_main(model: VertexInput) -> VertexOutput {
+@vertex fn vs_main(model: VertexInput) -> VertexOutput {
 
     var result: VertexOutput;
 

@@ -40,11 +40,6 @@ struct ModelTransforms {
     bone_transforms: array<mat4x4<f32>, 100>,
 }
 
-struct AnimationOutput {
-    position: vec4<f32>,
-    local_normal: vec3<f32>,
-}
-
 struct ShaderParameters {
     direction_light: DirectionLight,
     point_light: PointLight,
@@ -58,6 +53,11 @@ struct ShaderParameters {
     use_point_light: i32,
     use_emissive: i32,
     use_specular: i32,
+}
+
+struct AnimationOutput {
+    position: vec4<f32>,
+    local_normal: vec3<f32>,
 }
 
 fn get_animated_position(

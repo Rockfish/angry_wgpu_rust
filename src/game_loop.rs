@@ -116,6 +116,7 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
     shader_params.set_use_light(true);
     shader_params.set_use_point_light(true);
     shader_params.set_use_emissive(true);
+    shader_params.set_use_specular(true);
 
     // --- quads ---
 
@@ -313,7 +314,7 @@ fn game_run(context: &mut GpuContext, mut world: &mut World) {
         enemy_system.borrow_mut().chase_player(&mut world);
     }
 
-    let mut use_point_light = false;
+    let mut use_point_light = true; // false;
     let mut muzzle_world_position = Vec3::default();
 
     if !world.muzzle_flash.borrow().sprites_age.is_empty() {
