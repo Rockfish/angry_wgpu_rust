@@ -6,7 +6,6 @@ mod capsule;
 mod enemy;
 mod floor;
 mod framebuffers;
-mod game;
 mod game_loop;
 mod geom;
 mod muzzle_flash;

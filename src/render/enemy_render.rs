@@ -10,7 +10,7 @@ use crate::enemy::{EnemySystem, ENEMY_UNIFORMS_BIND_GROUP_LAYOUT};
 use crate::load_shader;
 use crate::params::shader_params::SHADER_PARAMETERS_BIND_GROUP_LAYOUT;
 use crate::render::main_render::Pipelines;
-use crate::render::textures::SHADOW_MATERIAL_BIND_GROUP_LAYOUT;
+use crate::render::shadow_map::{SHADOW_COMPARISON_BIND_GROUP_LAYOUT, ShadowMaterial};
 use crate::world::World;
 
 pub fn create_enemy_shader_pipeline(context: &GpuContext) -> Pipelines {
@@ -19,7 +19,7 @@ pub fn create_enemy_shader_pipeline(context: &GpuContext) -> Pipelines {
     let material_bind_group_layout = context.bind_layout_cache.get(MATERIAL_BIND_GROUP_LAYOUT).unwrap();
     let params_bind_group_layout = context.bind_layout_cache.get(SHADER_PARAMETERS_BIND_GROUP_LAYOUT).unwrap();
     let instances_bind_group_layout = context.bind_layout_cache.get(ENEMY_UNIFORMS_BIND_GROUP_LAYOUT).unwrap();
-    let shadow_bind_group_layout = context.bind_layout_cache.get(SHADOW_MATERIAL_BIND_GROUP_LAYOUT).unwrap();
+    let shadow_bind_group_layout = context.bind_layout_cache.get(SHADOW_COMPARISON_BIND_GROUP_LAYOUT).unwrap();
 
     let shadow_layout = context.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("Render Pipeline Layout"),
@@ -145,7 +145,7 @@ pub fn forward_render_enemies<'a>(
     world: &'a World,
     mut render_pass: RenderPass<'a>,
     enemy_system: &'a EnemySystem,
-    shadow_map: &'a Material,
+    shadow_map: &'a ShadowMaterial,
 ) -> RenderPass<'a> {
     let model = &enemy_system.enemy_model;
 
@@ -153,7 +153,7 @@ pub fn forward_render_enemies<'a>(
     render_pass.set_bind_group(1, &model.bind_group, &[]);
     render_pass.set_bind_group(2, &world.shader_params.bind_group, &[]);
     render_pass.set_bind_group(3, &enemy_system.instances_bind_group, &[]);
-    render_pass.set_bind_group(5, &shadow_map.bind_group, &[]);
+    render_pass.set_bind_group(5, &shadow_map.comparison_bind_group, &[]);
 
     for mesh in model.meshes.iter() {
         model.update_mesh_buffers(context, &mesh);

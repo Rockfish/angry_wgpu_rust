@@ -1,17 +1,16 @@
 use spark_gap::camera::camera_handler::CAMERA_BIND_GROUP_LAYOUT;
 use spark_gap::gpu_context::GpuContext;
-use spark_gap::material::{Material, MATERIAL_BIND_GROUP_LAYOUT};
+use spark_gap::material::MATERIAL_BIND_GROUP_LAYOUT;
 use spark_gap::model_builder::MODEL_BIND_GROUP_LAYOUT;
 use spark_gap::model_mesh::ModelVertex;
 use spark_gap::texture_config::TextureType;
-use wgpu::{IndexFormat, RenderPass, RenderPipeline};
+use wgpu::{IndexFormat, RenderPass};
 
 use crate::load_shader;
 use crate::params::shader_params::SHADER_PARAMETERS_BIND_GROUP_LAYOUT;
 use crate::player::Player;
 use crate::render::main_render::Pipelines;
-use crate::render::textures::SHADOW_MATERIAL_BIND_GROUP_LAYOUT;
-use crate::small_mesh::SmallMesh;
+use crate::render::shadow_map::{SHADOW_COMPARISON_BIND_GROUP_LAYOUT, ShadowMaterial};
 use crate::world::World;
 
 pub fn create_player_shader_pipeline(context: &GpuContext) -> Pipelines {
@@ -19,7 +18,7 @@ pub fn create_player_shader_pipeline(context: &GpuContext) -> Pipelines {
     let model_bind_group_layout = context.bind_layout_cache.get(MODEL_BIND_GROUP_LAYOUT).unwrap();
     let params_bind_group_layout = context.bind_layout_cache.get(SHADER_PARAMETERS_BIND_GROUP_LAYOUT).unwrap();
     let material_bind_group_layout = context.bind_layout_cache.get(MATERIAL_BIND_GROUP_LAYOUT).unwrap();
-    let shadow_bind_group_layout = context.bind_layout_cache.get(SHADOW_MATERIAL_BIND_GROUP_LAYOUT).unwrap();
+    let shadow_bind_group_layout = context.bind_layout_cache.get(SHADOW_COMPARISON_BIND_GROUP_LAYOUT).unwrap();
 
     let shader = context.device.create_shader_module(load_shader!("player_shader.wgsl").into());
 
@@ -137,12 +136,12 @@ pub fn forward_render_player<'a>(
     world: &'a World,
     mut render_pass: RenderPass<'a>,
     player: &'a Player,
-    shadow_map: &'a Material,
+    shadow_map: &'a ShadowMaterial,
 ) -> RenderPass<'a> {
     render_pass.set_bind_group(0, &world.camera_handler.bind_group, &[]);
     render_pass.set_bind_group(1, &player.model.bind_group, &[]);
     render_pass.set_bind_group(2, &world.shader_params.bind_group, &[]);
-    render_pass.set_bind_group(6, &shadow_map.bind_group, &[]);
+    render_pass.set_bind_group(6, &shadow_map.comparison_bind_group, &[]);
 
     for mesh in player.model.meshes.iter() {
         player.model.update_mesh_buffers(context, &mesh);

@@ -1,34 +1,35 @@
+use spark_gap::camera::camera_handler::CAMERA_BIND_GROUP_LAYOUT;
+use spark_gap::gpu_context::GpuContext;
+use spark_gap::material::{Material, MATERIAL_BIND_GROUP_LAYOUT};
+use wgpu::RenderPass;
+
 use crate::floor::Floor;
 use crate::load_shader;
 use crate::params::shader_params::SHADER_PARAMETERS_BIND_GROUP_LAYOUT;
 use crate::render::buffers::TRANSFORM_BIND_GROUP_LAYOUT;
 use crate::render::main_render::Pipelines;
+use crate::render::shadow_map::{SHADOW_COMPARISON_BIND_GROUP_LAYOUT, ShadowMaterial};
 use crate::small_mesh::SmallMesh;
 use crate::world::World;
-use spark_gap::camera::camera_handler::CAMERA_BIND_GROUP_LAYOUT;
-use spark_gap::gpu_context::GpuContext;
-use spark_gap::material::{Material, MATERIAL_BIND_GROUP_LAYOUT};
-use wgpu::{RenderPass, RenderPipeline};
-use crate::render::textures::SHADOW_MATERIAL_BIND_GROUP_LAYOUT;
 
 pub fn create_floor_shader_pipeline(context: &GpuContext) -> Pipelines {
+    let shader = context.device.create_shader_module(load_shader!("floor_shader.wgsl").into());
+    
     let camera_bind_group_layout = context.bind_layout_cache.get(CAMERA_BIND_GROUP_LAYOUT).unwrap();
-    let model_bind_group_layout = context.bind_layout_cache.get(TRANSFORM_BIND_GROUP_LAYOUT).unwrap();
+    let transform_bind_group_layout = context.bind_layout_cache.get(TRANSFORM_BIND_GROUP_LAYOUT).unwrap();
     let lighting_bind_group_layout = context.bind_layout_cache.get(SHADER_PARAMETERS_BIND_GROUP_LAYOUT).unwrap();
     let material_bind_group_layout = context.bind_layout_cache.get(MATERIAL_BIND_GROUP_LAYOUT).unwrap();
-    let shadow_bind_group_layout = context.bind_layout_cache.get(SHADOW_MATERIAL_BIND_GROUP_LAYOUT).unwrap();
+    let shadow_bind_group_layout = context.bind_layout_cache.get(SHADOW_COMPARISON_BIND_GROUP_LAYOUT).unwrap();
 
     let shadow_layout = context.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("floor pipeline layout"),
         bind_group_layouts: &[
             camera_bind_group_layout,
-            model_bind_group_layout,
+            transform_bind_group_layout,
             lighting_bind_group_layout,
         ],
         push_constant_ranges: &[],
     });
-
-    let shader = context.device.create_shader_module(load_shader!("floor_shader.wgsl").into());
 
     let shadow_pipeline = context.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some("shadow pipeline"),
@@ -65,7 +66,7 @@ pub fn create_floor_shader_pipeline(context: &GpuContext) -> Pipelines {
         label: Some("floor pipeline layout"),
         bind_group_layouts: &[
             camera_bind_group_layout,
-            model_bind_group_layout,
+            transform_bind_group_layout,
             lighting_bind_group_layout,
             material_bind_group_layout, // diffuse
             material_bind_group_layout, // specular
@@ -123,7 +124,7 @@ pub fn shadow_render_floor<'a>(
     floor: &'a Floor,
 ) -> RenderPass<'a> {
     render_pass.set_bind_group(0, &world.camera_handler.bind_group, &[]);
-    render_pass.set_bind_group(1, &floor.bind_group, &[]);
+    render_pass.set_bind_group(1, &floor.transform_bind_group, &[]);
     render_pass.set_bind_group(2, &world.shader_params.bind_group, &[]);
 
     render_pass.set_vertex_buffer(0, floor.floor_mesh.vertex_buffer.slice(..));
@@ -136,16 +137,16 @@ pub fn forward_render_floor<'a>(
     world: &'a World, 
     mut render_pass: RenderPass<'a>, 
     floor: &'a Floor, 
-    shadow_map: &'a Material
+    shadow_map: &'a ShadowMaterial
 ) -> RenderPass<'a> {
     render_pass.set_bind_group(0, &world.camera_handler.bind_group, &[]);
-    render_pass.set_bind_group(1, &floor.bind_group, &[]);
+    render_pass.set_bind_group(1, &floor.transform_bind_group, &[]);
     render_pass.set_bind_group(2, &world.shader_params.bind_group, &[]);
 
     render_pass.set_bind_group(3, floor.material_diffuse.bind_group.as_ref(), &[]);
     render_pass.set_bind_group(4, floor.material_specular.bind_group.as_ref(), &[]);
     render_pass.set_bind_group(5, floor.material_normal.bind_group.as_ref(), &[]);
-    render_pass.set_bind_group(6, &shadow_map.bind_group, &[]);
+    render_pass.set_bind_group(6, &shadow_map.comparison_bind_group, &[]);
 
     render_pass.set_vertex_buffer(0, floor.floor_mesh.vertex_buffer.slice(..));
     render_pass.draw(0..6, 0..1);

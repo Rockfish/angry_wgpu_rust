@@ -31,7 +31,7 @@ pub struct Floor {
     pub material_specular: Material,
     pub model_transform: Mat4,
     pub transform_buffer: Buffer,
-    pub bind_group: BindGroup,
+    pub transform_bind_group: BindGroup,
 }
 
 impl Floor {
@@ -64,7 +64,7 @@ impl Floor {
 
         let transform_buffer = create_mat4_buffer_init(context, &model_transform, "floor transform");
         let layout = get_or_create_bind_group_layout(context, TRANSFORM_BIND_GROUP_LAYOUT, create_uniform_bind_group_layout);
-        let bind_group = create_buffer_bind_group(context, &layout, &transform_buffer, "floor transform bind");
+        let transform_bind_group = create_buffer_bind_group(context, &layout, &transform_buffer, "floor transform bind");
 
         Self {
             floor_mesh,
@@ -73,7 +73,7 @@ impl Floor {
             material_specular,
             model_transform,
             transform_buffer,
-            bind_group,
+            transform_bind_group,
         }
     }
 

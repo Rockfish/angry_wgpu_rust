@@ -32,8 +32,8 @@ struct VertexInput {
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) tex_coords: vec2<f32>,
-    @location(1) fragment_world_position: vec3<f32>,
-    @location(2) fragement_light_space_position: vec4<f32>,
+    @location(1) world_position: vec3<f32>,
+    @location(2) light_space_position: vec4<f32>,
 };
 
 @vertex fn vs_shadow(vertex_input: VertexInput) -> @builtin(position) vec4<f32> {
@@ -50,8 +50,8 @@ struct VertexOutput {
     result.position = camera.projection * camera.view * model_transform * in_position;
     result.tex_coords = vertex_input.tex_coords;
 
-    result.fragment_world_position = (model_transform * in_position).xyz;
-    result.fragement_light_space_position = params.light_space_matrix * vec4<f32>(result.fragment_world_position, 1.0);
+    result.world_position = (model_transform * in_position).xyz;
+    result.light_space_position = params.light_space_matrix * vec4<f32>(result.world_position, 1.0);
 
     return result;
 }
@@ -82,22 +82,24 @@ struct VertexOutput {
         var bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
         var shadow = 0.0;
 
-        for (var x = -1; x <= 1; x += 1) {
-          for (var y = -1; y <= 1; y += 1) {
-                let offset = vec2<f32>(f32(x), f32(y)) * texelSize;
-                shadow += shadow_calculation(bias, in.fragement_light_space_position, offset);
-          }
-        }
-
-        shadow /= 7.0;
-        shadow *= 0.7;
+//        for (var x = -1; x <= 1; x += 1) {
+//          for (var y = -1; y <= 1; y += 1) {
+//                let offset = vec2<f32>(f32(x), f32(y)) * texelSize;
+//                shadow += shadow_calculation(bias, in.light_space_position, offset);
+//          }
+//        }
+//
+//        shadow /= 7.0;
+//        shadow *= 0.7;
+        shadow = fetch_shadow(in.light_space_position);
+        
         color = 0.7 * (1.0 - shadow) * params.direction_light.color * diffuse_color * diff + vec4<f32>(amb, 1.0);
 
         if (use_specular == 1) {
           var normal = vec3<f32>(0.0, 1.0, 0.0);
           var specLightDir = normalize(vec3<f32>(-3.0, 0.0, -1.0));
           var reflectDir = reflect(specLightDir, normal);
-          var viewDir = normalize(params.view_position.xyz - in.fragment_world_position);
+          var viewDir = normalize(params.view_position.xyz - in.world_position);
           var shininess = 0.7;
           var str = 1.0;//0.88;
           var spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
@@ -105,10 +107,10 @@ struct VertexOutput {
         }
 
         if (use_point_light == 1) {
-          var lightDir = normalize(params.point_light.world_position.xyz - in.fragment_world_position);
+          var lightDir = normalize(params.point_light.world_position.xyz - in.world_position);
           var normal = vec3<f32>(0.0, 1.0, 0.0);
           var diff = max(dot(normal, lightDir), 0.0);
-          var distance = length(params.point_light.world_position.xyz - in.fragment_world_position);
+          var distance = length(params.point_light.world_position.xyz - in.world_position);
           var linear_val = 0.5;
           var constant = 0.0;
           var quadratic = 3.0;
@@ -140,6 +142,19 @@ struct VertexOutput {
 //  return shadow;
 //}
 
+fn fetch_shadow(homogeneous_coords: vec4<f32>) -> f32 {
+    if (homogeneous_coords.w <= 0.0) {
+        return 1.0;
+    }
+    // compensate for the Y-flip difference between the NDC and texture coordinates
+    let flip_correction = vec2<f32>(0.5, -0.5);
+    // compute texture coordinates for shadow lookup
+    let proj_correction = 1.0 / homogeneous_coords.w;
+    let light_local = homogeneous_coords.xy * flip_correction * proj_correction + vec2<f32>(0.5, 0.5);
+    // do the lookup, using HW PCF and comparison
+    return textureSampleCompare(shadow_map_texture, shadow_map_sampler, light_local, homogeneous_coords.z * proj_correction);
+}
+
 fn shadow_calculation(bias: f32, frag_light_space: vec4<f32>, offset: vec2<f32>) -> f32 {
 
 //  let proj_correction = frag_light_space.xyz / frag_light_space.w;
@@ -151,6 +166,7 @@ fn shadow_calculation(bias: f32, frag_light_space: vec4<f32>, offset: vec2<f32>)
   projCoords = projCoords * 0.5 + 0.5;
 
   let shadow_depth = textureSampleCompare(shadow_map_texture, shadow_map_sampler, projCoords.xy + offset, projCoords.z);
+//  let shadow_depth = textureSample(shadow_map_texture, shadow_map_sampler, projCoords.xy + offset).z;
 
-  return shadow_depth + bias;
+  return shadow_depth; // + bias;
 }
