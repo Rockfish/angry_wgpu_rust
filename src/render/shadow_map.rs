@@ -1,7 +1,11 @@
 use glam::{Mat4, vec3};
 use spark_gap::gpu_context::GpuContext;
+use spark_gap::material::Material;
+use spark_gap::texture_config::{TextureConfig, TextureWrap};
 use wgpu::{BindGroup, BindGroupLayout, Sampler, Texture, TextureView};
+use crate::quads::create_unit_square;
 use crate::render::buffers::{create_buffer_bind_group, create_mat4_buffer_init, create_uniform_bind_group_layout, get_or_create_bind_group_layout, TRANSFORM_BIND_GROUP_LAYOUT};
+use crate::small_mesh::SmallMesh;
 
 pub const SHADOW_WIDTH: u32 = 6 * 1024;
 pub const SHADOW_HEIGHT: u32 = 6 * 1024;
@@ -13,6 +17,8 @@ pub const SHADOW_FILTER_BIND_GROUP_LAYOUT: &str = "shadow filter bind group layo
 
 
 pub struct ShadowMaterial {
+    pub quad_mesh: SmallMesh,
+    pub test_material: Material,
     pub texture: Texture,
     pub texture_view: TextureView,
     pub texture_sampler: Sampler,
@@ -63,8 +69,9 @@ pub fn create_shadow_map_material(context: &mut GpuContext) -> ShadowMaterial {
     let shadow_filter_layout = context.bind_layout_cache.get(SHADOW_FILTER_BIND_GROUP_LAYOUT).unwrap();
 
     let filter_bind_group = create_texture_bind_group(context, &shadow_filter_layout, &texture_view, &texture_sampler);
-    
 
+    // comparison 
+    
     let comparison_sampler = context.device.create_sampler(&wgpu::SamplerDescriptor {
         address_mode_u: wgpu::AddressMode::ClampToEdge,
         address_mode_v: wgpu::AddressMode::ClampToEdge,
@@ -100,14 +107,23 @@ pub fn create_shadow_map_material(context: &mut GpuContext) -> ShadowMaterial {
         label: Some("shadow material bind group"),
     });
 
-    let mut model_transform = Mat4::IDENTITY;
-    model_transform *= Mat4::from_scale(vec3(0.05, 0.05, 0.05));
+    let scale = 1.0f32;
+    let mut model_transform = Mat4::from_scale(vec3(scale, scale, scale));
+    model_transform *= Mat4::from_rotation_x(-90.0f32.to_radians());
 
     let transform_buffer = create_mat4_buffer_init(context, &model_transform, "shadow debug transform");
     let layout = get_or_create_bind_group_layout(context, TRANSFORM_BIND_GROUP_LAYOUT, create_uniform_bind_group_layout);
     let transform_bind_group = create_buffer_bind_group(context, &layout, &transform_buffer, "shadow debug transform bind group");
 
+    let quad_mesh = create_unit_square(context);
+
+    // test 
+    let texture_config = TextureConfig::new().set_wrap(TextureWrap::Clamp);
+    let test_material = Material::new(context, "angrygl_assets/bullet/red_and_green_bullet_transparent.png", &texture_config).unwrap();
+
     ShadowMaterial {
+        quad_mesh,
+        test_material,
         texture,
         texture_view,
         texture_sampler,

@@ -41,20 +41,21 @@ struct VertexOutput {
 @vertex fn vs_shadow(vertex_input: VertexInput) -> @builtin(position) vec4<f32> {
     var anim_output = get_animated_position(vertex_input, node_transform, bone_transforms);
     return params.light_space_matrix * model_transform * anim_output.position;
+//    return camera.projection * camera.view * model_transform * anim_output.position;
 }
 
-@vertex fn vs_main(model: VertexInput) -> VertexOutput {
+@vertex fn vs_main(vertex_input: VertexInput) -> VertexOutput {
 
     var result: VertexOutput;
 
-    var anim_output = get_animated_position(model, node_transform, bone_transforms);
+    var anim_output = get_animated_position(vertex_input, node_transform, bone_transforms);
 
     result.position = camera.projection * camera.view * model_transform * anim_output.position;
-    result.tex_coords = model.tex_coords;
+    result.tex_coords = vertex_input.tex_coords;
 
-    result.normal = (params.model_rotation * vec4<f32>(model.normal, 1.0)).xyz;
+    result.normal = (params.model_rotation * vec4<f32>(vertex_input.normal, 1.0)).xyz;
 
-    result.world_position = (model_transform * vec4<f32>(model.position, 1.0)).xyz;
+    result.world_position = (model_transform * vec4<f32>(vertex_input.position, 1.0)).xyz;
     result.light_space_position = params.light_space_matrix * vec4<f32>(result.world_position, 1.0);
 
     return result;

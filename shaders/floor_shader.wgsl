@@ -37,7 +37,8 @@ struct VertexOutput {
 };
 
 @vertex fn vs_shadow(vertex_input: VertexInput) -> @builtin(position) vec4<f32> {
-    return params.light_space_matrix * model_transform * vec4<f32>(vertex_input.position, 1.0);
+//    return params.light_space_matrix * model_transform * vec4<f32>(vertex_input.position, 1.0);
+    return camera.projection * camera.view * model_transform * vec4<f32>(vertex_input.position, 1.0);
 }
 
 // from basic_texture_shader.vert

@@ -2,7 +2,7 @@ use spark_gap::gpu_context::GpuContext;
 use wgpu::{CommandEncoder, RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor, RenderPipeline, TextureView};
 
 use crate::render::bullet_render::{create_bullet_shader_pipeline, render_bullets};
-use crate::render::debug_render::{create_debug_depth_render_pipeline, shadow_render_debug};
+use crate::render::debug_render::{create_debug_depth_render_pipeline, create_debug_test_render_pipeline, shadow_render_debug};
 use crate::render::enemy_render::{create_enemy_shader_pipeline, forward_render_enemies, shadow_render_enemies};
 use crate::render::floor_render::{create_floor_shader_pipeline, forward_render_floor, shadow_render_floor};
 use crate::render::player_render::{create_player_shader_pipeline, forward_render_player, shadow_render_player};
@@ -29,7 +29,8 @@ pub struct WorldRender {
     enemy_shader_pipelines: Pipelines,
     sprite_shader_pipeline: RenderPipeline,
     bullet_shader_pipeline: RenderPipeline,
-    depth_debug_pipeline: RenderPipeline,
+    debug_depth_pipeline: RenderPipeline,
+    debug_test_pipeline: RenderPipeline,
     pub depth_texture_view: TextureView,
     shadow_map_material: ShadowMaterial,
 }
@@ -46,7 +47,8 @@ impl WorldRender {
         let sprite_shader_pipeline = create_sprite_shader_pipeline(context);
         let bullet_shader_pipeline = create_bullet_shader_pipeline(context);
         
-        let depth_debug_pipeline = create_debug_depth_render_pipeline(context);
+        let debug_depth_pipeline = create_debug_depth_render_pipeline(context);
+        let debug_test_pipeline = create_debug_test_render_pipeline(context);
 
         Self {
             player_shader_pipelines,
@@ -54,7 +56,8 @@ impl WorldRender {
             enemy_shader_pipelines,
             sprite_shader_pipeline,
             bullet_shader_pipeline,
-            depth_debug_pipeline,
+            debug_depth_pipeline,
+            debug_test_pipeline,
             depth_texture_view,
             shadow_map_material,
         }
@@ -64,7 +67,7 @@ impl WorldRender {
         self.depth_texture_view = create_depth_texture_view(context);
     }
 
-    pub fn render(&mut self, context: &GpuContext, world: &World) {
+    pub fn render(&mut self, context: &GpuContext, world: &mut World) {
         world.shader_params.update_buffer(context);
 
         let mut encoder = context.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -132,15 +135,18 @@ impl WorldRender {
     }
     
     fn debug_render_pass(&self, world: &World, encoder: &mut CommandEncoder, pass_description: &RenderPassDescriptor) {
-        let floor = &world.floor.borrow();
 
         let mut render_pass = encoder.begin_render_pass(pass_description);
         
-        render_pass.set_pipeline(&self.depth_debug_pipeline);
-        render_pass = shadow_render_debug(render_pass, world, &self.shadow_map_material, floor);
+        render_pass.set_pipeline(&self.debug_depth_pipeline);
+        // render_pass.set_pipeline(&self.debug_test_pipeline);
+        render_pass = shadow_render_debug(render_pass, world, &self.shadow_map_material);
     }
 
-    fn shadow_render_pass(&self, context: &GpuContext, world: &World, encoder: &mut CommandEncoder, pass_description: &RenderPassDescriptor) {
+    fn shadow_render_pass(&self, context: &GpuContext, world: &mut World, encoder: &mut CommandEncoder, pass_description: &RenderPassDescriptor) {
+        
+        world.shader_params.set_use_light(false);
+        
         let floor = &world.floor.borrow();
         let player = &world.player.borrow();
         let enemy_system = &world.enemy_system.borrow();
@@ -160,7 +166,10 @@ impl WorldRender {
         render_pass = shadow_render_enemies(context, world, render_pass, enemy_system);
     }
 
-    fn main_render_pass(&self, context: &GpuContext, world: &World, encoder: &mut CommandEncoder, pass_description: &RenderPassDescriptor) {
+    fn main_render_pass(&self, context: &GpuContext, world: &mut World, encoder: &mut CommandEncoder, pass_description: &RenderPassDescriptor) {
+        
+        world.shader_params.set_use_light(true);
+        
         let floor = &world.floor.borrow();
         let player = &world.player.borrow();
         let flashes = &world.muzzle_flash.borrow();

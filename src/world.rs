@@ -71,7 +71,7 @@ pub struct World {
     pub mouse_y: f32,
     pub input: Input,
     pub player: RefCell<Player>,
-    pub scene_render: RefCell<WorldRender>,
+    // pub scene_render: RefCell<WorldRender>,
     pub shader_params: ShaderParametersHandler,
     pub floor: RefCell<Floor>,
     pub enemy_system: Rc<RefCell<EnemySystem>>,

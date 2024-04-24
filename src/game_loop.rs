@@ -130,7 +130,7 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
     let muzzle_flash = MuzzleFlash::new(&mut context, unit_square_quad.clone());
     let bullet_system = BulletSystem::new(&mut context, unit_square_quad.clone());
 
-    let scene_render = WorldRender::new(&mut context);
+    let mut scene_render = WorldRender::new(&mut context);
 
     let mut world = World {
         start_instant: Instant::now(),
@@ -155,7 +155,7 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
         orthographic_projection,
         light_direction: player_light_dir,
         player: player.into(),
-        scene_render: scene_render.into(),
+        // scene_render: scene_render.into(),
         shader_params,
         floor: floor.into(),
         enemy_system: RefCell::new(enemy_system).into(),
@@ -176,7 +176,7 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
                             frame_counter.update();
                             world.update_time();
 
-                            game_run(&mut context, &mut world);
+                            game_run(&mut context, &mut world, &mut scene_render);
 
                             context.window.request_redraw();
                         }
@@ -192,7 +192,7 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
                             context.resize(new_size);
                             world.camera_controller.resize(&context);
                             world.camera_handler.update_camera(&context, &world.camera_controller);
-                            world.scene_render.borrow_mut().resize(&context);
+                            scene_render.resize(&context);
                             context.window.request_redraw();
                         }
                         WindowEvent::CloseRequested => target.exit(),
@@ -208,7 +208,7 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
         .unwrap();
 }
 
-fn game_run(context: &mut GpuContext, mut world: &mut World) {
+fn game_run(context: &mut GpuContext, world: &mut World, scene_render: &mut WorldRender) {
     world.handle_input();
 
     world.camera_controller.update(&world.input, world.delta_time);
@@ -220,7 +220,7 @@ fn game_run(context: &mut GpuContext, mut world: &mut World) {
 
     let game_view = Mat4::look_at_rh(world.game_camera.position, world.player.borrow().position, world.game_camera.up);
 
-    let (projection, camera_view) = match world.active_camera {
+    let (projection, view) = match world.active_camera {
         CameraType::Game => (world.game_projection, game_view),
         CameraType::Floating => {
             let view = Mat4::look_at_rh(world.floating_camera.position, world.player.borrow().position, world.floating_camera.up);
@@ -242,7 +242,7 @@ fn game_run(context: &mut GpuContext, mut world: &mut World) {
 
     let camera_uniform = CameraUniform {
         projection,
-        view: camera_view,
+        view,
         position: world.game_camera.position,
         _padding: 0,
     };
@@ -251,7 +251,7 @@ fn game_run(context: &mut GpuContext, mut world: &mut World) {
 
     world.camera_handler.update_camera_buffer(context, camera_uniform);
 
-    let projection_view = projection * camera_view;
+    let projection_view = projection * view;
 
     let mut dx: f32 = 0.0;
     let mut dz: f32 = 0.0;
@@ -307,11 +307,12 @@ fn game_run(context: &mut GpuContext, mut world: &mut World) {
     let bullet_system = world.bullet_system.clone();
     let enemy_system = world.enemy_system.clone();
 
-    bullet_system.borrow_mut().update_bullets(context, &mut world);
+    bullet_system.borrow_mut().update_bullets(context, world);
 
     if world.player.borrow().is_alive {
-        enemy_system.borrow_mut().update(context, &mut world);
-        enemy_system.borrow_mut().chase_player(&mut world);
+        enemy_system.borrow_mut().update(context, world);
+        // TODO: remove for game
+        // enemy_system.borrow_mut().chase_player(&mut world);
     }
 
     let mut use_point_light = true; // false;
@@ -344,9 +345,10 @@ fn game_run(context: &mut GpuContext, mut world: &mut World) {
     world.shader_params.set_light_space_matrix(light_space_matrix);
     world.shader_params.set_use_point_light(use_point_light);
     world.shader_params.set_time(world.frame_time);
+    
     world.shader_params.update_buffer(context);
 
     world.player.borrow_mut().update(context, &world, &player_transform, aim_theta);
 
-    world.scene_render.borrow_mut().render(&context, &world);
+    scene_render.render(&context, world);
 }
