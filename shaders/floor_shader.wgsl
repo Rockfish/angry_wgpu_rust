@@ -25,8 +25,9 @@ struct VertexInput {
 @group(5) @binding(0) var normal_texture: texture_2d<f32>;
 @group(5) @binding(1) var normal_sampler: sampler;
 
-@group(6) @binding(0) var shadow_map_texture: texture_depth_2d;
-@group(6) @binding(1) var shadow_map_sampler: sampler_comparison;
+// shadow map
+@group(6) @binding(0) var shadow_map_texture: texture_depth_2d_array;
+@group(6) @binding(1) var shadow_map_sampler: sampler;
 
 
 struct VertexOutput {
@@ -37,8 +38,7 @@ struct VertexOutput {
 };
 
 @vertex fn vs_shadow(vertex_input: VertexInput) -> @builtin(position) vec4<f32> {
-//    return params.light_space_matrix * model_transform * vec4<f32>(vertex_input.position, 1.0);
-    return camera.projection * camera.view * model_transform * vec4<f32>(vertex_input.position, 1.0);
+    return params.light_space_matrix * model_transform * vec4<f32>(vertex_input.position, 1.0);
 }
 
 // from basic_texture_shader.vert
@@ -153,7 +153,7 @@ fn fetch_shadow(homogeneous_coords: vec4<f32>) -> f32 {
     let proj_correction = 1.0 / homogeneous_coords.w;
     let light_local = homogeneous_coords.xy * flip_correction * proj_correction + vec2<f32>(0.5, 0.5);
     // do the lookup, using HW PCF and comparison
-    return textureSampleCompare(shadow_map_texture, shadow_map_sampler, light_local, homogeneous_coords.z * proj_correction);
+    return textureSample(shadow_map_texture, shadow_map_sampler, light_local, 0);
 }
 
 fn shadow_calculation(bias: f32, frag_light_space: vec4<f32>, offset: vec2<f32>) -> f32 {
@@ -166,7 +166,8 @@ fn shadow_calculation(bias: f32, frag_light_space: vec4<f32>, offset: vec2<f32>)
   var projCoords = frag_light_space.xyz / frag_light_space.w;
   projCoords = projCoords * 0.5 + 0.5;
 
-  let shadow_depth = textureSampleCompare(shadow_map_texture, shadow_map_sampler, projCoords.xy + offset, projCoords.z);
+  let shadow_depth = textureSample(shadow_map_texture, shadow_map_sampler, projCoords.xy + offset, 0);
+
 //  let shadow_depth = textureSample(shadow_map_texture, shadow_map_sampler, projCoords.xy + offset).z;
 
   return shadow_depth; // + bias;

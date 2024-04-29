@@ -14,5 +14,4 @@ pub mod player_render;
 mod shader_loader;
 mod sprite_render;
 mod textures;
-mod debug_render;
-mod shadow_map;
+mod shadow_material;

@@ -1,6 +1,6 @@
 use spark_gap::camera::camera_handler::CAMERA_BIND_GROUP_LAYOUT;
 use spark_gap::gpu_context::GpuContext;
-use spark_gap::material::{Material, MATERIAL_BIND_GROUP_LAYOUT};
+use spark_gap::material::MATERIAL_BIND_GROUP_LAYOUT;
 use wgpu::RenderPass;
 
 use crate::floor::Floor;
@@ -8,7 +8,7 @@ use crate::load_shader;
 use crate::params::shader_params::SHADER_PARAMETERS_BIND_GROUP_LAYOUT;
 use crate::render::buffers::TRANSFORM_BIND_GROUP_LAYOUT;
 use crate::render::main_render::Pipelines;
-use crate::render::shadow_map::{SHADOW_COMPARISON_BIND_GROUP_LAYOUT, ShadowMaterial};
+use crate::render::shadow_material::{SHADOW_USE_BIND_GROUP_LAYOUT, ShadowMaterial};
 use crate::small_mesh::SmallMesh;
 use crate::world::World;
 
@@ -17,22 +17,22 @@ pub fn create_floor_shader_pipeline(context: &GpuContext) -> Pipelines {
     
     let camera_bind_group_layout = context.bind_layout_cache.get(CAMERA_BIND_GROUP_LAYOUT).unwrap();
     let transform_bind_group_layout = context.bind_layout_cache.get(TRANSFORM_BIND_GROUP_LAYOUT).unwrap();
-    let lighting_bind_group_layout = context.bind_layout_cache.get(SHADER_PARAMETERS_BIND_GROUP_LAYOUT).unwrap();
+    let parameters_bind_group_layout = context.bind_layout_cache.get(SHADER_PARAMETERS_BIND_GROUP_LAYOUT).unwrap();
     let material_bind_group_layout = context.bind_layout_cache.get(MATERIAL_BIND_GROUP_LAYOUT).unwrap();
-    let shadow_bind_group_layout = context.bind_layout_cache.get(SHADOW_COMPARISON_BIND_GROUP_LAYOUT).unwrap();
+    let shadow_bind_group_layout = context.bind_layout_cache.get(SHADOW_USE_BIND_GROUP_LAYOUT).unwrap();
 
     let shadow_layout = context.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: Some("floor pipeline layout"),
+        label: Some("floor shadow pipeline layout"),
         bind_group_layouts: &[
             camera_bind_group_layout,
             transform_bind_group_layout,
-            lighting_bind_group_layout,
+            parameters_bind_group_layout,
         ],
         push_constant_ranges: &[],
     });
 
     let shadow_pipeline = context.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-        label: Some("shadow pipeline"),
+        label: Some("floor shadow pipeline"),
         layout: Some(&shadow_layout),
         vertex: wgpu::VertexState {
             module: &shader,
@@ -63,11 +63,11 @@ pub fn create_floor_shader_pipeline(context: &GpuContext) -> Pipelines {
     });
 
     let forward_layout = context.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: Some("floor pipeline layout"),
+        label: Some("floor forward pipeline layout"),
         bind_group_layouts: &[
             camera_bind_group_layout,
             transform_bind_group_layout,
-            lighting_bind_group_layout,
+            parameters_bind_group_layout,
             material_bind_group_layout, // diffuse
             material_bind_group_layout, // specular
             material_bind_group_layout, // emissive
@@ -80,7 +80,7 @@ pub fn create_floor_shader_pipeline(context: &GpuContext) -> Pipelines {
     let swapchain_format = swapchain_capabilities.formats[0];
 
     let forward_pipeline = context.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-        label: Some("floor render pipeline"),
+        label: Some("floor forward render pipeline"),
         layout: Some(&forward_layout),
         vertex: wgpu::VertexState {
             module: &shader,
@@ -146,7 +146,7 @@ pub fn forward_render_floor<'a>(
     render_pass.set_bind_group(3, floor.material_diffuse.bind_group.as_ref(), &[]);
     render_pass.set_bind_group(4, floor.material_specular.bind_group.as_ref(), &[]);
     render_pass.set_bind_group(5, floor.material_normal.bind_group.as_ref(), &[]);
-    render_pass.set_bind_group(6, &shadow_map.comparison_bind_group, &[]);
+    render_pass.set_bind_group(6, &shadow_map.shadow_debug_bind_group, &[]);
 
     render_pass.set_vertex_buffer(0, floor.floor_mesh.vertex_buffer.slice(..));
     render_pass.draw(0..6, 0..1);

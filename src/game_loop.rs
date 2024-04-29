@@ -97,9 +97,9 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
     let ortho_width = VIEW_PORT_WIDTH as f32 / 130.0;
     let ortho_height = VIEW_PORT_HEIGHT as f32 / 130.0;
     let aspect_ratio = VIEW_PORT_WIDTH as f32 / VIEW_PORT_HEIGHT as f32;
-    let game_projection = Mat4::perspective_rh_gl(game_camera.zoom.to_radians(), aspect_ratio, 0.1, 100.0);
-    let floating_projection = Mat4::perspective_rh_gl(floating_camera.zoom.to_radians(), aspect_ratio, 0.1, 100.0);
-    let orthographic_projection = Mat4::orthographic_rh_gl(-ortho_width, ortho_width, -ortho_height, ortho_height, 0.1, 100.0);
+    let game_projection = Mat4::perspective_rh(game_camera.zoom.to_radians(), aspect_ratio, 0.1, 100.0);
+    let floating_projection = Mat4::perspective_rh(floating_camera.zoom.to_radians(), aspect_ratio, 0.1, 100.0);
+    let orthographic_projection = Mat4::orthographic_rh(-ortho_width, ortho_width, -ortho_height, ortho_height, 0.1, 100.0);
 
     let camera_position = vec3(0.0, 100.0, 300.0);
     let camera_controller = FlyCameraController::new(aspect_ratio, camera_position, 0.0, 0.0);

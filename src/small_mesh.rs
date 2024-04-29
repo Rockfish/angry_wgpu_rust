@@ -13,7 +13,7 @@ pub struct SmallMeshVertex {
 
 #[derive(Debug, Clone)]
 pub struct SmallMesh {
-    pub vertex_buffer: Rc<wgpu::Buffer>,
+    pub vertex_buffer: Rc<Buffer>,
     pub num_elements: u32,
 }
 

@@ -10,7 +10,7 @@ use crate::load_shader;
 use crate::params::shader_params::SHADER_PARAMETERS_BIND_GROUP_LAYOUT;
 use crate::player::Player;
 use crate::render::main_render::Pipelines;
-use crate::render::shadow_map::{SHADOW_COMPARISON_BIND_GROUP_LAYOUT, ShadowMaterial};
+use crate::render::shadow_material::{SHADOW_USE_BIND_GROUP_LAYOUT, ShadowMaterial};
 use crate::world::World;
 
 pub fn create_player_shader_pipeline(context: &GpuContext) -> Pipelines {
@@ -18,7 +18,7 @@ pub fn create_player_shader_pipeline(context: &GpuContext) -> Pipelines {
     let model_bind_group_layout = context.bind_layout_cache.get(MODEL_BIND_GROUP_LAYOUT).unwrap();
     let params_bind_group_layout = context.bind_layout_cache.get(SHADER_PARAMETERS_BIND_GROUP_LAYOUT).unwrap();
     let material_bind_group_layout = context.bind_layout_cache.get(MATERIAL_BIND_GROUP_LAYOUT).unwrap();
-    let shadow_bind_group_layout = context.bind_layout_cache.get(SHADOW_COMPARISON_BIND_GROUP_LAYOUT).unwrap();
+    let shadow_bind_group_layout = context.bind_layout_cache.get(SHADOW_USE_BIND_GROUP_LAYOUT).unwrap();
 
     let shader = context.device.create_shader_module(load_shader!("player_shader.wgsl").into());
 
@@ -141,7 +141,8 @@ pub fn forward_render_player<'a>(
     render_pass.set_bind_group(0, &world.camera_handler.bind_group, &[]);
     render_pass.set_bind_group(1, &player.model.bind_group, &[]);
     render_pass.set_bind_group(2, &world.shader_params.bind_group, &[]);
-    render_pass.set_bind_group(6, &shadow_map.comparison_bind_group, &[]);
+    
+    render_pass.set_bind_group(6, &shadow_map.shadow_use_bind_group, &[]);
 
     for mesh in player.model.meshes.iter() {
         player.model.update_mesh_buffers(context, &mesh);

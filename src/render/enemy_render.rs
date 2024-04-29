@@ -1,16 +1,16 @@
 use spark_gap::camera::camera_handler::CAMERA_BIND_GROUP_LAYOUT;
 use spark_gap::gpu_context::GpuContext;
-use spark_gap::material::{Material, MATERIAL_BIND_GROUP_LAYOUT};
+use spark_gap::material::MATERIAL_BIND_GROUP_LAYOUT;
 use spark_gap::model_builder::MODEL_BIND_GROUP_LAYOUT;
 use spark_gap::model_mesh::ModelVertex;
 use spark_gap::texture_config::TextureType;
 use wgpu::{IndexFormat, RenderPass};
 
-use crate::enemy::{EnemySystem, ENEMY_UNIFORMS_BIND_GROUP_LAYOUT};
+use crate::enemy::{ENEMY_UNIFORMS_BIND_GROUP_LAYOUT, EnemySystem};
 use crate::load_shader;
 use crate::params::shader_params::SHADER_PARAMETERS_BIND_GROUP_LAYOUT;
 use crate::render::main_render::Pipelines;
-use crate::render::shadow_map::{SHADOW_COMPARISON_BIND_GROUP_LAYOUT, ShadowMaterial};
+use crate::render::shadow_material::{SHADOW_USE_BIND_GROUP_LAYOUT, ShadowMaterial};
 use crate::world::World;
 
 pub fn create_enemy_shader_pipeline(context: &GpuContext) -> Pipelines {
@@ -19,7 +19,7 @@ pub fn create_enemy_shader_pipeline(context: &GpuContext) -> Pipelines {
     let material_bind_group_layout = context.bind_layout_cache.get(MATERIAL_BIND_GROUP_LAYOUT).unwrap();
     let params_bind_group_layout = context.bind_layout_cache.get(SHADER_PARAMETERS_BIND_GROUP_LAYOUT).unwrap();
     let instances_bind_group_layout = context.bind_layout_cache.get(ENEMY_UNIFORMS_BIND_GROUP_LAYOUT).unwrap();
-    let shadow_bind_group_layout = context.bind_layout_cache.get(SHADOW_COMPARISON_BIND_GROUP_LAYOUT).unwrap();
+    let shadow_bind_group_layout = context.bind_layout_cache.get(SHADOW_USE_BIND_GROUP_LAYOUT).unwrap();
 
     let shadow_layout = context.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("Render Pipeline Layout"),
@@ -153,7 +153,7 @@ pub fn forward_render_enemies<'a>(
     render_pass.set_bind_group(1, &model.bind_group, &[]);
     render_pass.set_bind_group(2, &world.shader_params.bind_group, &[]);
     render_pass.set_bind_group(3, &enemy_system.instances_bind_group, &[]);
-    render_pass.set_bind_group(5, &shadow_map.comparison_bind_group, &[]);
+    render_pass.set_bind_group(5, &shadow_map.shadow_use_bind_group, &[]);
 
     for mesh in model.meshes.iter() {
         model.update_mesh_buffers(context, &mesh);
