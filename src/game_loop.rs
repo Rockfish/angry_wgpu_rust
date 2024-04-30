@@ -336,13 +336,13 @@ fn game_run(context: &mut GpuContext, world: &mut World, scene_render: &mut Worl
     let ortho_size: f32 = 10.0;
     let player_position = world.player.borrow().position;
 
-    let light_projection = Mat4::orthographic_rh_gl(-ortho_size, ortho_size, -ortho_size, ortho_size, near_plane, far_plane);
+    let light_projection = Mat4::orthographic_rh(-ortho_size, ortho_size, -ortho_size, ortho_size, near_plane, far_plane);
     let light_view = Mat4::look_at_rh(player_position - 20.0 * world.light_direction, player_position, vec3(0.0, 1.0, 0.0));
     let light_space_matrix = light_projection * light_view;
 
+    world.shader_params.set_light_space_matrix(light_space_matrix);
     world.shader_params.set_model_rotation(aim_rotation);
     world.shader_params.set_view_position(world.game_camera.position.clone());
-    world.shader_params.set_light_space_matrix(light_space_matrix);
     world.shader_params.set_use_point_light(use_point_light);
     world.shader_params.set_time(world.frame_time);
     

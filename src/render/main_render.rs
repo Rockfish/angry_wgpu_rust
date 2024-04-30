@@ -1,3 +1,5 @@
+use glam::{Mat4, vec3};
+use spark_gap::buffers::{update_mat4_buffer, update_u32_buffer};
 use spark_gap::gpu_context::GpuContext;
 use wgpu::{CommandEncoder, RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor, RenderPipeline, TextureView};
 
@@ -100,7 +102,7 @@ impl WorldRender {
                     store: wgpu::StoreOp::Store,
                 },
             };
-            
+
             let depth_attachment = RenderPassDepthStencilAttachment {
                 view: &self.depth_texture_view,
                 depth_ops: Some(wgpu::Operations {
@@ -109,7 +111,7 @@ impl WorldRender {
                 }),
                 stencil_ops: None,
             };
-        
+
             let forward_pass_description = RenderPassDescriptor {
                 label: Some("render pass"),
                 color_attachments: &[Some(color_attachment)],
@@ -118,23 +120,32 @@ impl WorldRender {
                 occlusion_query_set: None,
             };
 
-            self.forward_render_pass(context, world, &mut encoder, &forward_pass_description);
-            
-            // self.debug_render_pass(world, &mut encoder, &forward_pass_description);
+            self.shadow_debug_render(context, &mut encoder, &forward_pass_description);
+
+            // self.forward_render_pass(context, world, &mut encoder, &forward_pass_description);
         }
 
         context.queue.submit(Some(encoder.finish()));
         frame.present();
     }
-    
-    fn debug_render_pass(&self, world: &World, encoder: &mut CommandEncoder, pass_description: &RenderPassDescriptor) {
+
+    fn shadow_debug_render(&self, context: &GpuContext, encoder: &mut CommandEncoder, pass_description: &RenderPassDescriptor) {
+        let width = (context.config.width as f32 / 2.0) + 5.0;
+        let height = (context.config.height as f32 / 2.0) + 5.0;
+
+        let orthographic_projection = Mat4::orthographic_rh(-width, width, -height, height, 0.1, 1000.0);
+        let view = Mat4::look_at_rh(vec3(0.0, 0.0001, 200.0), vec3(0.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0));
+
+        let project_view_matrix = orthographic_projection * view;
+
+        update_mat4_buffer(context, &self.shadow_map_material.projection_view_buffer, &project_view_matrix);
+        update_u32_buffer(context, &self.shadow_map_material.layer_num_buffer, &0);
 
         let mut render_pass = encoder.begin_render_pass(pass_description);
-        
         render_pass.set_pipeline(&self.shadow_map_material.shadow_debug_pipeline);
-        render_pass = shadow_render_debug(render_pass, &self.shadow_map_material);
+        shadow_render_debug(render_pass, &self.shadow_map_material);
     }
-
+    
     fn shadow_render_pass(&self, context: &GpuContext, world: &mut World, encoder: &mut CommandEncoder, pass_description: &RenderPassDescriptor) {
         
         world.shader_params.set_use_light(false);
@@ -146,8 +157,8 @@ impl WorldRender {
         let mut render_pass = encoder.begin_render_pass(pass_description);
 
         // floor
-        render_pass.set_pipeline(&self.floor_shader_pipelines.shadow_pipeline);
-        render_pass = shadow_render_floor(world, render_pass, floor);
+        // render_pass.set_pipeline(&self.floor_shader_pipelines.shadow_pipeline);
+        // render_pass = shadow_render_floor(world, render_pass, floor);
 
         // player
         render_pass.set_pipeline(&self.player_shader_pipelines.shadow_pipeline);

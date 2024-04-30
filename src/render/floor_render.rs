@@ -142,11 +142,10 @@ pub fn forward_render_floor<'a>(
     render_pass.set_bind_group(0, &world.camera_handler.bind_group, &[]);
     render_pass.set_bind_group(1, &floor.transform_bind_group, &[]);
     render_pass.set_bind_group(2, &world.shader_params.bind_group, &[]);
-
     render_pass.set_bind_group(3, floor.material_diffuse.bind_group.as_ref(), &[]);
     render_pass.set_bind_group(4, floor.material_specular.bind_group.as_ref(), &[]);
     render_pass.set_bind_group(5, floor.material_normal.bind_group.as_ref(), &[]);
-    render_pass.set_bind_group(6, &shadow_map.shadow_debug_bind_group, &[]);
+    render_pass.set_bind_group(6, &shadow_map.shadow_use_bind_group, &[]);
 
     render_pass.set_vertex_buffer(0, floor.floor_mesh.vertex_buffer.slice(..));
     render_pass.draw(0..6, 0..1);
