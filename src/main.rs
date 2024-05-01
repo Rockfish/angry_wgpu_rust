@@ -53,7 +53,7 @@ pub fn main() {
     let window = Arc::new(
         builder
             .with_title("Animation Example")
-            .with_inner_size(winit::dpi::LogicalSize::new(800.0, 800.0))
+            .with_inner_size(winit::dpi::LogicalSize::new(game_loop::VIEW_PORT_WIDTH as f32, game_loop::VIEW_PORT_HEIGHT as f32))
             .build(&event_loop)
             .unwrap(),
     );

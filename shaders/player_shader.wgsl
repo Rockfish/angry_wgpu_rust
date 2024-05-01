@@ -41,7 +41,6 @@ struct VertexOutput {
 @vertex fn vs_shadow(vertex_input: VertexInput) -> @builtin(position) vec4<f32> {
     var anim_output = get_animated_position(vertex_input, node_transform, bone_transforms);
     return params.light_space_matrix * model_transform * anim_output.position;
-//    return camera.projection * camera.view * model_transform * anim_output.position;
 }
 
 @vertex fn vs_main(vertex_input: VertexInput) -> VertexOutput {
@@ -73,7 +72,7 @@ struct VertexOutput {
 
     var color = textureSample(diffuse_texture, diffuse_sampler, in.tex_coords);
 
-      if (use_light != 0) {
+      if (use_light == 1) {
 
         var normal = normalize(in.normal);
 
@@ -94,7 +93,7 @@ struct VertexOutput {
           color = (1.0 - shadow) * params.direction_light.color * color * diff + vec4<f32>(amb, 1.0);
         }
 
-        if (use_point_light != 0) {
+        if (use_point_light == 1) {
           var lightDir = normalize(params.point_light.world_position.xyz - in.world_position);
           var diff = max(dot(normal, lightDir), 0.0);
           var diffuse  = 0.7 * params.point_light.color.xyz * diff * textureSample(diffuse_texture, diffuse_sampler, in.tex_coords).xyz;
@@ -113,7 +112,7 @@ struct VertexOutput {
           color += spec * 0.1 * vec4<f32>(1.0, 1.0, 1.0, 1.0);
         }
 
-        if (use_emissive != 0) {
+        if (use_emissive == 1) {
           var emission = textureSample(emissive_texture, emissive_sampler, in.tex_coords);//.rgb;
           color += emission;
         }

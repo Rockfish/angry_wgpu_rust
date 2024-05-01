@@ -91,7 +91,7 @@ pub fn create_shadow_map_material(context: &mut GpuContext) -> ShadowMaterial {
         get_or_create_bind_group_layout(context, SHADOW_USE_BIND_GROUP_LAYOUT, create_shadow_use_bind_group_layout);
 
     let shadow_use_bind_group = context.device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: Some("shadow filter bind group"),
+        label: Some("shadow use bind group"),
         layout: &shadow_use_layout,
         entries: &[
             wgpu::BindGroupEntry {
@@ -109,7 +109,7 @@ pub fn create_shadow_map_material(context: &mut GpuContext) -> ShadowMaterial {
         get_or_create_bind_group_layout(context, SHADOW_DEBUG_BIND_GROUP_LAYOUT, create_shadow_debug_bind_group_layout);
 
     let shadow_debug_bind_group = context.device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: Some("shadow filter bind group"),
+        label: Some("shadow debug bind group"),
         layout: &shadow_debug_layout,
         entries: &[
             wgpu::BindGroupEntry {
@@ -283,7 +283,7 @@ pub fn create_debug_depth_render_pipeline(gpu_context: &GpuContext) -> RenderPip
 fn create_shadow_texture_view(shadow_texture: &Texture, layer_id: u32) -> TextureView {
     shadow_texture.create_view(&wgpu::TextureViewDescriptor {
         label: Some(&format!("shadow id: {}", layer_id)),
-        format: None,
+        format: Some(wgpu::TextureFormat::Depth32Float),
         dimension: Some(wgpu::TextureViewDimension::D2),
         aspect: wgpu::TextureAspect::All,
         base_mip_level: 0,

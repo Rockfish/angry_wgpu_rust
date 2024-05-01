@@ -81,22 +81,28 @@ struct VertexOutput {
         var amb = params.ambient_color.xyz * diffuse_color.xyz;
 
         var bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+
+        bias = 0.0002;
         var shadow = 0.0;
 
-//        for (var x = -1; x <= 1; x += 1) {
-//          for (var y = -1; y <= 1; y += 1) {
-//                let offset = vec2<f32>(f32(x), f32(y)) * texelSize;
-//                shadow += shadow_calculation(bias, in.light_space_position, offset);
-//          }
-//        }
-//
-//        shadow /= 7.0;
-//        shadow *= 0.7;
-        shadow = fetch_shadow(in.light_space_position);
-        
-        color = 0.7 * (1.0 - shadow) * params.direction_light.color * diffuse_color * diff + vec4<f32>(amb, 1.0);
+        for (var x = -1; x <= 1; x += 1) {
+          for (var y = -1; y <= 1; y += 1) {
+                let offset = vec2<f32>(f32(x), f32(y)) * texelSize;
+                shadow += shadow_calculation(bias, in.light_space_position, offset);
+          }
+        }
 
-        if (use_specular == 1) {
+        shadow /= 9.0; // average
+        shadow *= 0.9; // attenuate
+
+//        shadow = fetch_shadow(in.light_space_position, bias);
+//        shadow = shadow_calculation(0.0002, in.light_space_position, vec2<f32>(0.0, 0.0));
+
+//        color = 0.7 * (1.0 - shadow) * params.direction_light.color * diffuse_color * diff + vec4<f32>(amb, 1.0);
+
+        color = (1.0 - shadow) * diffuse_color * params.direction_light.color + vec4<f32>(amb, 1.0);
+
+        if (use_specular == 2) {
           var normal = vec3<f32>(0.0, 1.0, 0.0);
           var specLightDir = normalize(vec3<f32>(-3.0, 0.0, -1.0));
           var reflectDir = reflect(specLightDir, normal);
@@ -143,32 +149,55 @@ struct VertexOutput {
 //  return shadow;
 //}
 
-fn fetch_shadow(homogeneous_coords: vec4<f32>) -> f32 {
+fn fetch_shadow(homogeneous_coords: vec4<f32>, bias: f32) -> f32 {
     if (homogeneous_coords.w <= 0.0) {
         return 1.0;
     }
+
     // compensate for the Y-flip difference between the NDC and texture coordinates
     let flip_correction = vec2<f32>(0.5, -0.5);
+
     // compute texture coordinates for shadow lookup
     let proj_correction = 1.0 / homogeneous_coords.w;
+    let currentDepth = homogeneous_coords.z;
+
     let light_local = homogeneous_coords.xy * flip_correction * proj_correction + vec2<f32>(0.5, 0.5);
-    // do the lookup, using HW PCF and comparison
-    return textureSample(shadow_map_texture, shadow_map_sampler, light_local, 0);
+
+    let shadow_depth = textureSample(shadow_map_texture, shadow_map_sampler, light_local, 0);
+
+      var shadow = 0.0;
+      var bias_2 = 0.1;
+      if (currentDepth + bias) > shadow_depth {
+        shadow = 1.0;
+      };
+
+      return shadow;
 }
 
-fn shadow_calculation(bias: f32, frag_light_space: vec4<f32>, offset: vec2<f32>) -> f32 {
+fn shadow_calculation(bias: f32, frag_light_space_position: vec4<f32>, offset: vec2<f32>) -> f32 {
 
-//  let proj_correction = frag_light_space.xyz / frag_light_space.w;
-//  let flip_correction = vec2<f32>(0.5, -0.5);
-//
-//  let projCoords = proj_correction.xy * flip_correction + vec2<f32>(0.5, 0.5);
+  let proj_correction = frag_light_space_position.xyz / frag_light_space_position.w;
+  let flip_correction = vec2<f32>(0.5, -0.5);
 
-  var projCoords = frag_light_space.xyz / frag_light_space.w;
-  projCoords = projCoords * 0.5 + 0.5;
+  let projCoords = proj_correction.xy * flip_correction + vec2<f32>(0.5, 0.5);
+  var currentDepth = proj_correction.z;
+
+//  var projCoords = light_space_position.xyz / light_space_position.w;
+//  projCoords = projCoords * 0.5 + 0.5;
 
   let shadow_depth = textureSample(shadow_map_texture, shadow_map_sampler, projCoords.xy + offset, 0);
 
 //  let shadow_depth = textureSample(shadow_map_texture, shadow_map_sampler, projCoords.xy + offset).z;
 
-  return shadow_depth; // + bias;
+//    let flip_correction = vec2<f32>(1.0, -1.0);
+//    let tex_coords = light_space_position * flip_correction + vec2<f32>(0.0, 1.0);
+//
+//    var value = textureSample(shadow_map_texture, shadow_map_sampler, tex_coords, 0);
+
+  var shadow = 0.0;
+  if (currentDepth - bias) > shadow_depth {
+    shadow = 1.0;
+  };
+
+  return shadow;
 }

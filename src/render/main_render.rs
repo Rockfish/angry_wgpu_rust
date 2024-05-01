@@ -120,9 +120,9 @@ impl WorldRender {
                 occlusion_query_set: None,
             };
 
-            self.shadow_debug_render(context, &mut encoder, &forward_pass_description);
+            // self.shadow_debug_render(context, &mut encoder, &forward_pass_description);
 
-            // self.forward_render_pass(context, world, &mut encoder, &forward_pass_description);
+            self.forward_render_pass(context, world, &mut encoder, &forward_pass_description);
         }
 
         context.queue.submit(Some(encoder.finish()));
@@ -157,8 +157,8 @@ impl WorldRender {
         let mut render_pass = encoder.begin_render_pass(pass_description);
 
         // floor
-        // render_pass.set_pipeline(&self.floor_shader_pipelines.shadow_pipeline);
-        // render_pass = shadow_render_floor(world, render_pass, floor);
+        render_pass.set_pipeline(&self.floor_shader_pipelines.shadow_pipeline);
+        render_pass = shadow_render_floor(world, render_pass, floor);
 
         // player
         render_pass.set_pipeline(&self.player_shader_pipelines.shadow_pipeline);

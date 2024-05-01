@@ -37,6 +37,11 @@ struct VertexOutput {
 
     // expand top range and reverse the range for better grayscale contrast
     value = 1.0 - (value - 0.80) * 5.0;
+//    value = 1.0 - (value - 0.90) * 10.0;
+//    value = 1.0 - (value - 0.95) * 20.0;
+//    value = 1.0 - (value - 0.98) * 50.0;
+
+//    value = 1.0 - value;
 
     return vec4<f32>(value, value, value, 1.0);
 }

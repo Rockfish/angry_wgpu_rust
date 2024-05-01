@@ -48,21 +48,13 @@ struct VertexOutput {
 };
 
 @vertex fn vs_shadow(in: VertexInput, @builtin(instance_index) index: u32) -> @builtin(position) vec4<f32> {
-//    let light = lights_uniform[index];
-
-//    var in_position = vec4<f32>(input.position, 1.0);
-//    var world_position = (model_transform * in_position).xyz;
-//    return params.light_space_matrix * vec4<f32>(world_position, 1.0);
-
     let enemy = enemy_uniforms[index];
-    let enemy_transform = enemy.model_transform;
-    let enemy_model_rotation = enemy.model_rotation;
-    let time = params.time;
-    let x_offset = sin(wiggleTimeModifier * time + wiggleDistModifier * distance(nose_position, in.position)) * wiggleMagnitude;
-    let position = camera.projection * camera.view * enemy_transform * vec4<f32>(in.position.x + x_offset, in.position.y, in.position.z, 1.0);
+
+    let x_offset = sin(wiggleTimeModifier * params.time + wiggleDistModifier * distance(nose_position, in.position)) * wiggleMagnitude;
+
+    let position = params.light_space_matrix * enemy.model_transform * vec4<f32>(in.position.x + x_offset, in.position.y, in.position.z, 1.0);
     return position;
 }
-
 
 @vertex fn vs_main(in: VertexInput, @builtin(instance_index) index: u32) -> VertexOutput {
 

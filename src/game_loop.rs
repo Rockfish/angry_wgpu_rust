@@ -20,6 +20,7 @@ use spark_gap::input::Input;
 use spark_gap::math::{get_world_ray_from_mouse, ray_plane_intersection};
 use spark_gap::model_builder::ModelBuilder;
 use std::cell::RefCell;
+use std::f32::consts;
 use std::f32::consts::PI;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -33,8 +34,8 @@ use winit::window::Window;
 const PARALLELISM: i32 = 4;
 
 // Viewport
-const VIEW_PORT_WIDTH: i32 = 1500;
-const VIEW_PORT_HEIGHT: i32 = 1000;
+pub(crate) const VIEW_PORT_WIDTH: i32 = 1500;
+pub(crate) const VIEW_PORT_HEIGHT: i32 = 1000;
 // const VIEW_PORT_WIDTH: i32 = 800;
 // const VIEW_PORT_HEIGHT: i32 = 500;
 
@@ -63,8 +64,9 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
 
     // --- Lighting ---
 
-    let light_dir: Vec3 = vec3(-0.8, 0.0, -1.0).normalize_or_zero();
-    let player_light_dir: Vec3 = vec3(-1.0, -1.0, -1.0).normalize_or_zero();
+    // let light_dir: Vec3 = vec3(-0.8, 0.0, -1.0).normalize_or_zero();
+    let light_direction: Vec3 = vec3(-1.0, 1.0, -1.0).normalize_or_zero();
+    
     let muzzle_point_light_color = vec3(1.0, 0.2, 0.0);
 
     let light_color: Vec3 = LIGHT_FACTOR * 1.0 * vec3(NON_BLUE * 0.406, NON_BLUE * 0.723, 1.0);
@@ -96,8 +98,10 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
 
     let ortho_width = VIEW_PORT_WIDTH as f32 / 130.0;
     let ortho_height = VIEW_PORT_HEIGHT as f32 / 130.0;
-    let aspect_ratio = VIEW_PORT_WIDTH as f32 / VIEW_PORT_HEIGHT as f32;
-    let game_projection = Mat4::perspective_rh(game_camera.zoom.to_radians(), aspect_ratio, 0.1, 100.0);
+    // let aspect_ratio = VIEW_PORT_WIDTH as f32 / VIEW_PORT_HEIGHT as f32;
+    let aspect_ratio = context.config.width as f32 / context.config.height as f32;
+    
+    let game_projection = Mat4::perspective_rh(game_camera.zoom.to_radians(), 1.0, 0.1, 100.0);
     let floating_projection = Mat4::perspective_rh(floating_camera.zoom.to_radians(), aspect_ratio, 0.1, 100.0);
     let orthographic_projection = Mat4::orthographic_rh(-ortho_width, ortho_width, -ortho_height, ortho_height, 0.1, 100.0);
 
@@ -110,7 +114,7 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
     let mut shader_params = ShaderParametersHandler::new(&mut context);
 
     shader_params.set_direction_light_color(light_color);
-    shader_params.set_direction_light_direction(player_light_dir.clone());
+    shader_params.set_direction_light_direction(light_direction.clone());
     shader_params.set_view_position(view_position.clone());
     shader_params.set_ambient_color(ambient_color);
     shader_params.set_use_light(true);
@@ -153,7 +157,7 @@ pub async fn run(event_loop: EventLoop<()>, window: Arc<Window>) {
         game_projection,
         floating_projection,
         orthographic_projection,
-        light_direction: player_light_dir,
+        light_direction,
         player: player.into(),
         // scene_render: scene_render.into(),
         shader_params,
@@ -331,16 +335,27 @@ fn game_run(context: &mut GpuContext, world: &mut World, scene_render: &mut Worl
         use_point_light = min_age < 0.03;
     }
 
-    let near_plane: f32 = 1.0;
-    let far_plane: f32 = 50.0;
-    let ortho_size: f32 = 10.0;
     let player_position = world.player.borrow().position;
 
-    let light_projection = Mat4::orthographic_rh(-ortho_size, ortho_size, -ortho_size, ortho_size, near_plane, far_plane);
-    let light_view = Mat4::look_at_rh(player_position - 20.0 * world.light_direction, player_position, vec3(0.0, 1.0, 0.0));
+    // let light_direction = vec3(-1.0, 1.0, -1.0).normalize_or_zero();
+
+    let light_view = Mat4::look_at_rh(player_position + 10.0 * world.light_direction, player_position, vec3(0.0, 1.0, 0.0));
+    
+    /*
+    let top = 3.0;
+    let bottom = -3.0;
+    let left = -3.0;
+    let right = 3.0;
+    let ortho_projection = Mat4::orthographic_rh(left, right, bottom, top, 2.0, 20.0);
+    let light_space_matrix = ortho_projection * light_view;
+     */
+    
+    // let aspect_ratio = context.config.width as f32 / context.config.height as f32;
+    let light_projection = Mat4::perspective_rh(50.0_f32.to_radians(), 1.0, 1.0, 50.0);
     let light_space_matrix = light_projection * light_view;
 
     world.shader_params.set_light_space_matrix(light_space_matrix);
+    
     world.shader_params.set_model_rotation(aim_rotation);
     world.shader_params.set_view_position(world.game_camera.position.clone());
     world.shader_params.set_use_point_light(use_point_light);
