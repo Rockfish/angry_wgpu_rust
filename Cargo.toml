@@ -32,7 +32,7 @@ rand = "0.8.5"
 rayon = "1.8.1"
 rodio = { version = "0.17.3", features = ["wav"] }
 russimp = { path = "../russimp_glam" }
-spark-gap = { path = "../spark-gap" }
+small_wgpu_core = { path = "../small_wgpu_core" }
 tracing = "0.1.40"
 web-time = "1.0.0"
 wgpu = { version = "0.19.1", features = ["naga", "naga-ir"] }
